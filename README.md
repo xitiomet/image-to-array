@@ -17,6 +17,7 @@ usage: ita
 
 ### Example Usage ###
 hearts.png (16x5 Image i want displayed on glasses)
+
 ![](https://raw.githubusercontent.com/xitiomet/image-to-array/master/res/hearts2.png)
 ```
 $ ita -i hearts.png -c CRGB
