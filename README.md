@@ -1,7 +1,7 @@
 ## Image Array Tool ##
 ![](https://raw.githubusercontent.com/xitiomet/image-to-array/master/res/icon128.png)
 
-Simple Command line tool for converting images to data arrays. I made this from use with my RGB Shades (http://macetech.com/store/index.php?main_page=product_info&products_id=59), I wanted a simple way to convert any image into an array of pixels for use with Arduino's FastLED Library.
+Simple Command line tool for converting images to data arrays. I made this to use with my RGB Shades (http://macetech.com/store/index.php?main_page=product_info&products_id=59), I wanted a simple way to convert any image into an array of pixels compatable with Arduino's FastLED Library.
 
 ```
 usage: ita
