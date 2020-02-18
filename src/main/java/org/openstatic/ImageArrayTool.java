@@ -1,13 +1,16 @@
 package org.openstatic;
 
-import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.awt.image.AffineTransformOp;
 import java.awt.geom.AffineTransform;
 import java.io.IOException;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
+
 import javax.imageio.ImageIO;
+import java.awt.Color;
 
 import java.util.Vector;
 import java.util.Collection;
@@ -28,73 +31,28 @@ public class ImageArrayTool
     public static String sourceImageName;
     public static File sourceImageFile;
     public static BufferedImage sourceImage;
+    public static LinkedHashMap<GeoColor, String> ansiColors;
     
-    private static Color[][] convertTo2D(BufferedImage image)
+    private static GeoColor[][] convertTo2DArray(BufferedImage image)
     {
       int width = image.getWidth();
       int height = image.getHeight();
-      Color[][] result = new Color[height][width];
-
+      GeoColor[][] result = new GeoColor[height][width];
       for (int row = 0; row < height; row++)
       {
          for (int col = 0; col < width; col++)
          {
-            result[row][col] = new Color(image.getRGB(col, row));
+            result[row][col] = new GeoColor(image.getRGB(col, row));
          }
       }
-
       return result;
     }
-   
-    public static double colorDistance(Color a, Color b)
-    {
-        return Math.sqrt(Math.pow(a.getRed() - b.getRed(), 2) + Math.pow(a.getGreen() - b.getGreen(), 2) + Math.pow(a.getBlue() - b.getBlue(), 2));
-    }
     
-    public static Color nearestColor(Set<Color> colorSet, Color color)
-    {
-        double distance = Double.MAX_VALUE;
-        Color rc = null;
-        for(Iterator<Color> i = colorSet.iterator(); i.hasNext();)
-        {
-            Color c = i.next();
-            double td = colorDistance(c, color);
-            if (td < distance)
-            {
-                distance = td;
-                rc = c;
-            }
-        }
-        return rc;
-    }
-    
-    public static String getAnsiCodeFromRGB(Color col)
+    public static String getAnsiCodeFromRGB(GeoColor col)
     {        
-        LinkedHashMap<Color, String> ansi = new LinkedHashMap();
-        ansi.put(new Color(0, 0, 0), "\u001B[30m");
-        ansi.put(new Color(0, 0, 170), "\u001B[34m");
-        ansi.put(new Color(0, 170 ,0), "\u001B[32m");
-        ansi.put(new Color(0, 170, 170), "\u001B[36m");
-        ansi.put(new Color(170, 0, 0), "\u001B[31m");
-        ansi.put(new Color(170, 0, 170), "\u001B[35m");
-        ansi.put(new Color(170, 170, 0), "\u001B[33m");
-        ansi.put(new Color(170,170,170), "\u001B[37m");
-        
-        ansi.put(new Color(85,85,85), "\u001B[90m");
-        ansi.put(new Color(255,85,85), "\u001B[91m");
-        ansi.put(new Color(85,255,85), "\u001B[92m");
-        ansi.put(new Color(255,255,85), "\u001B[93m");
-        ansi.put(new Color(85,85,255), "\u001B[94m");
-        ansi.put(new Color(255,85,255), "\u001B[95m");
-        ansi.put(new Color(85,255,255), "\u001B[96m");
-        ansi.put(new Color(255,255,255), "\u001B[97m");
-        
-        
-        Set<Color> colors = ansi.keySet();
-        
-        Color colour = nearestColor(colors, col);
-        
-        String name = ansi.get(colour);
+        Set<GeoColor> colors = ImageArrayTool.ansiColors.keySet();
+        GeoColor colour = col.nearestColor(colors);
+        String name = ImageArrayTool.ansiColors.get(colour);
         return name;
     }
     
@@ -138,20 +96,25 @@ public class ImageArrayTool
         }
     }
     
-    public static void print2DAsciiArt(Color[][] ary)
+    public static String getAsciiArt(GeoColor[][] ary, boolean lineNumbers)
     {
+        StringBuffer sb = new StringBuffer();
         for (int row = 0; row < ary.length; row++)
         {
-            System.out.print( String.format("%03d" ,row) + ": ");
+            if (lineNumbers)
+                sb.append( String.format("%03d" ,row) + ": ");
             for (int col = 0; col < ary[row].length; col++)
             {
-                System.out.print(getAnsiCodeFromRGB(ary[row][col]) + "\u2588\u2588");
+                sb.append("\u001B[38;2;" + String.valueOf(ary[row][col].getRed()) + ";" + String.valueOf(ary[row][col].getGreen()) + ";" + String.valueOf(ary[row][col].getBlue()) + "m\u2588\u2588");
+                //System.out.print(getAnsiCodeFromRGB(ary[row][col]) + "\u2588\u2588");
             }
-            System.out.println("\u001B[0m");
+            sb.append("\n");
         }
+        sb.append("\u001B[0m");
+        return sb.toString();
     }
     
-    public static int getHueFromColor(Color c)
+    public static int getHueFromColor(GeoColor c)
     {
         int red = c.getRed();
         int green = c.getGreen();
@@ -165,7 +128,7 @@ public class ImageArrayTool
         return Math.round(hue * 360f);
     }
     
-    public static void print2DRGBArray(String n, String fun, Color[][] ary)
+    public static String get2DRGBArray(String n, String fun, GeoColor[][] ary)
     {
         int rows = ary.length;
         int cols = ary[0].length;
@@ -183,10 +146,10 @@ public class ImageArrayTool
             if (row+1 < ary.length) sb.append(", ");
         }
         sb.append(" };");
-        System.out.println(sb.toString());
+        return sb.toString();
     }
 
-    public static void printRGBArray(String n, String fun, Color[][] ary)
+    public static String getRGBArray(String n, String fun, GeoColor[][] ary)
     {
         int total_size = ary.length * ary[0].length;
         StringBuffer sb = new StringBuffer(fun + " " + n + "[" + String.valueOf(total_size) + "] = { ");
@@ -194,29 +157,56 @@ public class ImageArrayTool
         {
             for (int col = 0; col < ary[row].length; col++)
             {
-                Color pix = ary[row][col];
+                GeoColor pix = ary[row][col];
                 sb.append(fun+"(" + String.valueOf(pix.getRed()) + ", " + String.valueOf(pix.getGreen()) + ", " + String.valueOf(pix.getBlue()) + ")");
                 if (col+1 < ary[row].length || row+1 < ary.length) sb.append(", ");
             }
         }
         sb.append(" };");
-        System.out.println(sb.toString());
+        return sb.toString();
     }
 
     public static void main(String[] args) throws IOException 
     {
+        ImageArrayTool.ansiColors = new LinkedHashMap();
+        
+        // Regular Colors
+        ImageArrayTool.ansiColors.put(new GeoColor(0, 0, 0), "\u001B[30m");
+        ImageArrayTool.ansiColors.put(new GeoColor(0, 0, 170), "\u001B[34m");
+        ImageArrayTool.ansiColors.put(new GeoColor(0, 170 ,0), "\u001B[32m");
+        ImageArrayTool.ansiColors.put(new GeoColor(0, 170, 170), "\u001B[36m");
+        ImageArrayTool.ansiColors.put(new GeoColor(170, 0, 0), "\u001B[31m");
+        ImageArrayTool.ansiColors.put(new GeoColor(170, 0, 170), "\u001B[35m");
+        ImageArrayTool.ansiColors.put(new GeoColor(170, 170, 0), "\u001B[33m");
+        ImageArrayTool.ansiColors.put(new GeoColor(170,170,170), "\u001B[37m");
+        
+        // Bright Colors
+        ImageArrayTool.ansiColors.put(new GeoColor(85,85,85), "\u001B[90m");
+        ImageArrayTool.ansiColors.put(new GeoColor(255,85,85), "\u001B[91m");
+        ImageArrayTool.ansiColors.put(new GeoColor(85,255,85), "\u001B[92m");
+        ImageArrayTool.ansiColors.put(new GeoColor(255,255,85), "\u001B[93m");
+        ImageArrayTool.ansiColors.put(new GeoColor(85,85,255), "\u001B[94m");
+        ImageArrayTool.ansiColors.put(new GeoColor(255,85,255), "\u001B[95m");
+        ImageArrayTool.ansiColors.put(new GeoColor(85,255,255), "\u001B[96m");
+        ImageArrayTool.ansiColors.put(new GeoColor(255,255,255), "\u001B[97m");
+        
         CommandLine cmd = null;
         try
         {
             Options options = new Options();
             CommandLineParser parser = new DefaultParser();
+            boolean rowNumbers = false;
+            StringBuffer output = new StringBuffer();
 
             options.addOption(new Option("d", "debug", false, "Turn on debug."));
             options.addOption(new Option("?", "help", false, "Shows help"));
             options.addOption(new Option("i", "input", true, "Input image file"));
+            options.addOption(new Option("o", "output", true, "Output file"));
             options.addOption(new Option("c", "output-array", true, "Output a RGB C++ style struct array"));
             options.addOption(new Option("2", "output-2d-array", true, "Output a RGB two dimensional C++ style struct array"));
             options.addOption(new Option("a", "output-ascii", false, "Output an ascii art image"));
+            options.addOption(new Option("r", "row-numbers", false, "Include row numbers on ascii art"));
+            
             options.addOption(new Option("s", "scale", true, "Scale image (ex: 320x240 or 0.5)"));
 
             cmd = parser.parse(options, args);
@@ -241,22 +231,34 @@ public class ImageArrayTool
             }
             
             // All Filters should be bfore this line
-            Color[][] sourceImageArray = convertTo2D(ImageArrayTool.sourceImage);
+            GeoColor[][] sourceImageArray = convertTo2DArray(ImageArrayTool.sourceImage);
 
+            if (cmd.hasOption("r"))
+                rowNumbers = true;
             
             if (cmd.hasOption("a"))
             {
-                print2DAsciiArt(sourceImageArray);
+                output.append(getAsciiArt(sourceImageArray, rowNumbers));
             }
             
             if (cmd.hasOption("c"))
             {
-                printRGBArray(ImageArrayTool.sourceImageName, cmd.getOptionValue('c',"CRGB"), sourceImageArray);
+                output.append(getRGBArray(ImageArrayTool.sourceImageName, cmd.getOptionValue('c',"CRGB"), sourceImageArray));
             }
             
             if (cmd.hasOption("2"))
             {
-                print2DRGBArray(ImageArrayTool.sourceImageName, cmd.getOptionValue('2',"CRGB"), sourceImageArray);
+                output.append(get2DRGBArray(ImageArrayTool.sourceImageName, cmd.getOptionValue('2',"CRGB"), sourceImageArray));
+            }
+            
+            if (cmd.hasOption("o"))
+            {
+                BufferedWriter bwr = new BufferedWriter(new FileWriter(new File(cmd.getOptionValue('o',"output.txt"))));
+                bwr.write(output.toString());
+                bwr.flush();
+                bwr.close();
+            } else {
+                System.out.println(output.toString());
             }
         } catch (Exception e) {
             e.printStackTrace(System.err);
