@@ -1,18 +1,22 @@
 ## Image Array Tool ##
 ![](https://raw.githubusercontent.com/xitiomet/image-to-array/master/res/icon128.png)
 
-Simple Command line tool for converting images to data arrays. I made this to use with my RGB Shades (http://macetech.com/store/index.php?main_page=product_info&products_id=59), I wanted a simple way to convert any image into an array of pixels compatable with Arduino's FastLED Library.
+Simple Command line tool for converting images to data arrays. I made this to use with my RGB Shades (http://macetech.com/store/index.php?main_page=product_info&products_id=59), I wanted a simple way to convert any image into an array of pixels compatable with Arduino's FastLED Library. I may have gone past the original scope a bit, i added scaling and palette manipulation.
 
 ```
 usage: ita
- -2,--output-2d-array <arg>   Output a RGB two dimensional C++ style
-                              struct array
+ -2,--output-2d-array <arg>   Output a RGB two dimensional C++ struct
+                              array
  -?,--help                    Shows help
- -a,--output-ascii            Output an ascii art image
- -c,--output-array <arg>      Output a RGB C++ style struct array
- -d,--debug                   Turn on debug.
+ -a,--output-ascii            Output a 24-bit ASCII art image
+ -c,--output-array <arg>      Output a RGB C++ struct array
+ -d,--details                 Output image details
  -i,--input <arg>             Input image file
+ -o,--output <arg>            Output file
+ -p,--input-palette <arg>     Input image file for color palette filter
+ -r,--row-numbers             Include row numbers on ASCII art
  -s,--scale <arg>             Scale image (ex: 320x240 or 0.5)
+
 ```
 
 ### Example Usage ###

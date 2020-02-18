@@ -4,6 +4,7 @@ import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.awt.image.AffineTransformOp;
 import java.awt.geom.AffineTransform;
+import java.awt.Graphics2D;
 import java.io.IOException;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -20,6 +21,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Enumeration;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.ArrayList;
+import java.util.Comparator;
 
 import java.io.IOException;
 import java.util.regex.Pattern;
@@ -46,6 +50,107 @@ public class ImageArrayTool
          }
       }
       return result;
+    }
+    
+    private static BufferedImage applyPalette(BufferedImage image, Set<GeoColor> palette)
+    {
+        BufferedImage newImage = new BufferedImage(image.getWidth(), image.getHeight(), image.getType());
+        int width = image.getWidth();
+        int height = image.getHeight();
+        for (int row = 0; row < height; row++)
+        {
+            for (int col = 0; col < width; col++)
+            {
+                //System.err.println("x=" + String.valueOf(col) + " y=" + String.valueOf(row));
+                GeoColor oldColor = new GeoColor(image.getRGB(col, row));
+                GeoColor newColor = oldColor.nearestColor(palette);
+                if (newColor != null)
+                {
+                    newImage.setRGB(col, row, newColor.getRGB());
+                }
+            }
+        }
+        return newImage;
+    }
+    
+    private static Set<GeoColor> getPalette(BufferedImage image)
+    {
+        ArrayList<Integer> colors = new ArrayList<Integer>();
+        int width = image.getWidth();
+        int height = image.getHeight();
+        for (int row = 0; row < height; row++)
+        {
+            for (int col = 0; col < width; col++)
+            {
+                Integer rgb = Integer.valueOf(image.getRGB(col, row) | 0xFF000000);
+                if (!colors.contains(rgb))
+                {
+                    colors.add(rgb);
+                }
+            }
+        }
+        colors.sort((a, b) -> { return a.intValue() - b.intValue(); });
+        LinkedHashSet<GeoColor> geoColors = new LinkedHashSet<GeoColor>();
+        Iterator<Integer> colorsIterator = colors.iterator();
+        while(colorsIterator.hasNext())
+        {
+            GeoColor pixel = new GeoColor(colorsIterator.next().intValue());
+            geoColors.add(pixel);
+        }
+        return geoColors;
+    }
+    
+    public static Set<GeoColor> reducePalette(Set<GeoColor> palette, int newSize)
+    {
+        int ps = palette.size();
+        if (ps > newSize)
+        {
+            int m = Math.round(((float)ps) / ((float)newSize));
+            int i = 0;
+            LinkedHashSet<GeoColor> geoColors = new LinkedHashSet<GeoColor>();
+            Iterator<GeoColor> colorsIterator = palette.iterator();
+            while(colorsIterator.hasNext())
+            {
+                GeoColor nc = colorsIterator.next();
+                if (i % m == 0)
+                {
+                    geoColors.add(nc);
+                }
+                i++;
+            }
+            return geoColors;
+        } else {
+            return palette;
+        }
+    }
+    
+    private static Set<GeoColor> getGeoColorSet(BufferedImage image, double distanceFilter)
+    {
+        LinkedHashSet<GeoColor> colors = new LinkedHashSet<GeoColor>();
+        int width = image.getWidth();
+        int height = image.getHeight();
+        for (int row = 0; row < height; row++)
+        {
+            for (int col = 0; col < width; col++)
+            {
+                GeoColor pixel = new GeoColor(image.getRGB(col, row));
+                GeoColor nearest = pixel.nearestColor(colors);
+                
+                if (nearest == null)
+                {
+                    colors.add(pixel);
+                } else {
+                    double d = nearest.distanceFrom(pixel);
+                    if (d > distanceFilter)
+                    {
+                        colors.add(pixel);
+                    }
+                }
+            }
+        }
+        ArrayList<GeoColor> geoColors = new ArrayList<GeoColor>(colors);
+        geoColors.sort((a, b) -> { return a.getRGB() - b.getRGB(); });
+        return new LinkedHashSet<GeoColor>(geoColors);
     }
     
     public static String getAnsiCodeFromRGB(GeoColor col)
@@ -96,13 +201,33 @@ public class ImageArrayTool
         }
     }
     
+    public static String getColorStrip(Set<GeoColor> colors)
+    {
+        StringBuffer sb = new StringBuffer();
+        Iterator<GeoColor> colorIterator = colors.iterator();
+        int i = 0;
+        while(colorIterator.hasNext())
+        {
+            GeoColor col = colorIterator.next();
+            sb.append("\u001B[38;2;" + String.valueOf(col.getRed()) + ";" + String.valueOf(col.getGreen()) + ";" + String.valueOf(col.getBlue()) + "m\u2588");
+            if (i >= 20)
+            {
+                sb.append("\n");
+                i=0;
+            } else {
+                i++;
+            }
+        }
+        return sb.toString() + "\u001B[0m";
+    }
+    
     public static String getAsciiArt(GeoColor[][] ary, boolean lineNumbers)
     {
         StringBuffer sb = new StringBuffer();
         for (int row = 0; row < ary.length; row++)
         {
             if (lineNumbers)
-                sb.append( String.format("%03d" ,row) + ": ");
+                sb.append( "\u001B[1m\u001B[97m" + String.format("%03d" ,row) + ":\u001B[0m ");
             for (int col = 0; col < ary[row].length; col++)
             {
                 sb.append("\u001B[38;2;" + String.valueOf(ary[row][col].getRed()) + ";" + String.valueOf(ary[row][col].getGreen()) + ";" + String.valueOf(ary[row][col].getBlue()) + "m\u2588\u2588");
@@ -145,7 +270,7 @@ public class ImageArrayTool
             sb.append("}");
             if (row+1 < ary.length) sb.append(", ");
         }
-        sb.append(" };");
+        sb.append(" };\n");
         return sb.toString();
     }
 
@@ -162,7 +287,7 @@ public class ImageArrayTool
                 if (col+1 < ary[row].length || row+1 < ary.length) sb.append(", ");
             }
         }
-        sb.append(" };");
+        sb.append(" };\n");
         return sb.toString();
     }
 
@@ -198,15 +323,15 @@ public class ImageArrayTool
             boolean rowNumbers = false;
             StringBuffer output = new StringBuffer();
 
-            options.addOption(new Option("d", "debug", false, "Turn on debug."));
+            options.addOption(new Option("d", "details", false, "Output image details"));
             options.addOption(new Option("?", "help", false, "Shows help"));
             options.addOption(new Option("i", "input", true, "Input image file"));
+            options.addOption(new Option("p", "input-palette", true, "Input image file for color palette filter"));
             options.addOption(new Option("o", "output", true, "Output file"));
-            options.addOption(new Option("c", "output-array", true, "Output a RGB C++ style struct array"));
-            options.addOption(new Option("2", "output-2d-array", true, "Output a RGB two dimensional C++ style struct array"));
-            options.addOption(new Option("a", "output-ascii", false, "Output an ascii art image"));
-            options.addOption(new Option("r", "row-numbers", false, "Include row numbers on ascii art"));
-            
+            options.addOption(new Option("c", "output-array", true, "Output a RGB C++ struct array"));
+            options.addOption(new Option("2", "output-2d-array", true, "Output a RGB two dimensional C++ struct array"));
+            options.addOption(new Option("a", "output-ascii", false, "Output a 24-bit ASCII art image"));
+            options.addOption(new Option("r", "row-numbers", false, "Include row numbers on ASCII art"));
             options.addOption(new Option("s", "scale", true, "Scale image (ex: 320x240 or 0.5)"));
 
             cmd = parser.parse(options, args);
@@ -221,9 +346,16 @@ public class ImageArrayTool
             ImageArrayTool.sourceImageFile = new File(cmd.getOptionValue('i',"input.png"));
             ImageArrayTool.sourceImage = ImageIO.read(ImageArrayTool.sourceImageFile);
             
+            
             String fn = ImageArrayTool.sourceImageFile.getName();
             ImageArrayTool.sourceImageName = fn.substring(0, fn.lastIndexOf('.'));
             
+            if (cmd.hasOption("p"))
+            {
+                BufferedImage paletteImage = ImageIO.read(new File(cmd.getOptionValue('p',"palette.png")));
+                Set<GeoColor> newPalette = reducePalette(getPalette(paletteImage), 256);
+                ImageArrayTool.sourceImage = applyPalette(ImageArrayTool.sourceImage, newPalette);
+            }
             
             if (cmd.hasOption("s"))
             {
@@ -232,7 +364,7 @@ public class ImageArrayTool
             
             // All Filters should be bfore this line
             GeoColor[][] sourceImageArray = convertTo2DArray(ImageArrayTool.sourceImage);
-
+            
             if (cmd.hasOption("r"))
                 rowNumbers = true;
             
@@ -241,22 +373,45 @@ public class ImageArrayTool
                 output.append(getAsciiArt(sourceImageArray, rowNumbers));
             }
             
+            if (cmd.hasOption("d"))
+            {
+                Set<GeoColor> palette = getPalette(ImageArrayTool.sourceImage);
+                Set<GeoColor> reducedPalette = reducePalette(palette, 256);
+                String cStrip = getColorStrip(reducedPalette);
+                int w = ImageArrayTool.sourceImage.getWidth();
+                int h = ImageArrayTool.sourceImage.getHeight();
+                output.append("\n");
+                output.append("// filename = " + ImageArrayTool.sourceImageFile.getName() + "\n");
+                output.append("// colors = " + String.valueOf(palette.size()) + "\n");
+                output.append("// width = " + String.valueOf(w) + "\n");
+                output.append("// height = " + String.valueOf(h) + "\n");
+                output.append("// pixels = " + String.valueOf(w*h) + "\n");
+                output.append("\n");
+                output.append("reduced palette [256]:\n" + cStrip + "\n\n");
+            }
+            
             if (cmd.hasOption("c"))
             {
-                output.append(getRGBArray(ImageArrayTool.sourceImageName, cmd.getOptionValue('c',"CRGB"), sourceImageArray));
+                output.append(getRGBArray(ImageArrayTool.sourceImageName, cmd.getOptionValue('c',"CRGB"), sourceImageArray) + "\n");
             }
             
             if (cmd.hasOption("2"))
             {
-                output.append(get2DRGBArray(ImageArrayTool.sourceImageName, cmd.getOptionValue('2',"CRGB"), sourceImageArray));
+                output.append(get2DRGBArray(ImageArrayTool.sourceImageName, cmd.getOptionValue('2',"CRGB"), sourceImageArray) + "\n");
             }
             
             if (cmd.hasOption("o"))
             {
-                BufferedWriter bwr = new BufferedWriter(new FileWriter(new File(cmd.getOptionValue('o',"output.txt"))));
-                bwr.write(output.toString());
-                bwr.flush();
-                bwr.close();
+                String filename = cmd.getOptionValue('o',"output.png");
+                if (output.length() == 0)
+                {
+                    ImageIO.write(ImageArrayTool.sourceImage, "png", new File(filename));
+                } else {
+                    BufferedWriter bwr = new BufferedWriter(new FileWriter(new File(cmd.getOptionValue('o',"output.txt"))));
+                    bwr.write(output.toString());
+                    bwr.flush();
+                    bwr.close();
+                }
             } else {
                 System.out.println(output.toString());
             }

@@ -39,4 +39,5 @@ public class GeoColor extends Color
         }
         return rc;
     }
+    
 }
