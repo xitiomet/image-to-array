@@ -9,10 +9,12 @@ import java.io.IOException;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
+import java.io.ByteArrayOutputStream;
 
 import javax.imageio.ImageIO;
 import java.awt.Color;
 
+import java.util.Base64;
 import java.util.Vector;
 import java.util.Collection;
 import java.util.Iterator;
@@ -253,6 +255,25 @@ public class ImageArrayTool
         return Math.round(hue * 360f);
     }
     
+    public static String filenameExtension(String filename)
+    {
+        String extension = "";
+        int i = filename.lastIndexOf('.');
+        if (i > 0)
+        {
+            extension = filename.substring(i+1);
+        }
+        return extension;
+    }
+    
+    public static String base64image(BufferedImage image) throws Exception
+    {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(image, "PNG", baos);
+        String res = "data:image/png;base64," + Base64.getEncoder().encodeToString(baos.toByteArray());
+        return res.trim();
+    }
+    
     public static String get2DRGBArray(String n, String fun, GeoColor[][] ary)
     {
         int rows = ary.length;
@@ -327,12 +348,14 @@ public class ImageArrayTool
             options.addOption(new Option("?", "help", false, "Shows help"));
             options.addOption(new Option("i", "input", true, "Input image file"));
             options.addOption(new Option("p", "input-palette", true, "Input image file for color palette filter"));
-            options.addOption(new Option("o", "output", true, "Output file"));
-            options.addOption(new Option("c", "output-array", true, "Output a RGB C++ struct array"));
-            options.addOption(new Option("2", "output-2d-array", true, "Output a RGB two dimensional C++ struct array"));
+            options.addOption(new Option("s", "scale", true, "Scale image (ex: 320x240 or 0.5)"));
+            options.addOption(new Option("o", "output", true, "Output file (.txt or .png)"));
+            options.addOption(new Option("c", "output-array", true, "Output a RGB C/C++ struct array"));
+            options.addOption(new Option("2", "output-2d-array", true, "Output a RGB two dimensional C/C++ struct array"));
+            options.addOption(new Option("6", "output-base64", false, "Output a base64 png string"));
+            options.addOption(new Option("h", "output-html", false, "Output an html img tag with base64 encoded image"));
             options.addOption(new Option("a", "output-ascii", false, "Output a 24-bit ASCII art image"));
             options.addOption(new Option("r", "row-numbers", false, "Include row numbers on ASCII art"));
-            options.addOption(new Option("s", "scale", true, "Scale image (ex: 320x240 or 0.5)"));
 
             cmd = parser.parse(options, args);
 
@@ -400,12 +423,24 @@ public class ImageArrayTool
                 output.append(get2DRGBArray(ImageArrayTool.sourceImageName, cmd.getOptionValue('2',"CRGB"), sourceImageArray) + "\n");
             }
             
+            if (cmd.hasOption("6"))
+            {
+                
+                output.append(base64image(ImageArrayTool.sourceImage));
+            }
+            
+            if (cmd.hasOption("h"))
+            {
+                output.append("<img id=\"img" + ImageArrayTool.sourceImageName + "\" src=\"" + base64image(ImageArrayTool.sourceImage) + "\" />");
+            }
+            
             if (cmd.hasOption("o"))
             {
                 String filename = cmd.getOptionValue('o',"output.png");
                 if (output.length() == 0)
                 {
-                    ImageIO.write(ImageArrayTool.sourceImage, "png", new File(filename));
+                    String ext = filenameExtension(filename);
+                    ImageIO.write(ImageArrayTool.sourceImage, ext, new File(filename));
                 } else {
                     BufferedWriter bwr = new BufferedWriter(new FileWriter(new File(cmd.getOptionValue('o',"output.txt"))));
                     bwr.write(output.toString());

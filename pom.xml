@@ -11,6 +11,7 @@
     <mainClass>org.openstatic.ImageArrayTool</mainClass>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
+    <graalvm.version>20.1.0</graalvm.version>
   </properties>
   <repositories>
     <repository>
@@ -56,6 +57,7 @@
           <directory>res/</directory>
           <includes>
             <include>*.png</include>
+            <include>*.ico</include>
           </includes>
       </resource>
     </resources>
@@ -82,12 +84,143 @@
             </executions>
         </plugin>
         <plugin>
+            <groupId>org.graalvm.nativeimage</groupId>
+            <artifactId>native-image-maven-plugin</artifactId>
+            <version>${graalvm.version}</version>
+            <executions>
+                <execution>
+                    <goals>
+                        <goal>native-image</goal>
+                    </goals>
+                    <phase>package</phase>
+                </execution>
+            </executions>
+            <configuration>
+                <skip>false</skip>
+                <imageName>ita</imageName>
+                <mainClass>${mainClass}</mainClass>
+                <buildArgs>
+                    --no-server
+                    --no-fallback
+                    -H:Log=registerResource:
+                    -H:JNIConfigurationFiles=../src/graalvm/jni.json
+                    -H:+JNI
+                </buildArgs>
+            </configuration>
+       </plugin>
+        <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-javadoc-plugin</artifactId>
             <version>3.0.1</version>
             <configuration>
             </configuration>
        </plugin>
+       <plugin>
+            <artifactId>jdeb</artifactId>
+            <groupId>org.vafer</groupId>
+            <version>1.8</version>
+            <executions>
+                <execution>
+                    <phase>package</phase>
+                    <goals>
+                        <goal>jdeb</goal>
+                    </goals>
+                    <configuration>
+                        <verbose>true</verbose>
+                        <snapshotExpand>true</snapshotExpand>
+                        <!-- expand "SNAPSHOT" to what is in the "USER" env variable -->
+                        <snapshotEnv>USER</snapshotEnv>
+                        <controlDir>${basedir}/src/deb/control</controlDir>
+                        <deb>${project.build.directory}/${project.artifactId}-${project.version}.deb</deb>
+                        <dataSet>
+                            <data>
+                              <src>${project.build.directory}/${project.build.finalName}.jar</src>
+                              <type>file</type>
+                              <mapper>
+                                <type>perm</type>
+                                <prefix>/usr/share/image-to-array/lib</prefix>
+                                <user>loader</user>
+                                <group>loader</group>
+                                <filemode>755</filemode>
+                              </mapper>
+                            </data>
+                            <data>
+                              <src>${basedir}/src/deb/ita</src>
+                              <type>file</type>
+                              <mapper>
+                                <type>perm</type>
+                                <prefix>/usr/bin</prefix>
+                                <user>loader</user>
+                                <group>loader</group>
+                                <filemode>755</filemode>
+                              </mapper>
+                            </data>
+                            <data>
+                              <src>${basedir}/res/icon128.png</src>
+                              <type>file</type>
+                              <mapper>
+                                <type>perm</type>
+                                <prefix>/usr/share/image-to-array</prefix>
+                                <user>loader</user>
+                                <group>loader</group>
+                                <filemode>755</filemode>
+                              </mapper>
+                            </data>
+                            <data>
+                              <type>link</type>
+                              <symlink>true</symlink>
+                              <linkName>/usr/share/java/image-to-array.jar</linkName>
+                              <linkTarget>../image-to-array/lib/${project.build.finalName}.jar</linkTarget>
+                            </data>
+                        </dataSet>
+                    </configuration>
+                </execution>
+            </executions>
+       </plugin>
+       <plugin>
+            <groupId>com.akathist.maven.plugins.launch4j</groupId>
+            <artifactId>launch4j-maven-plugin</artifactId>
+            <version>1.5.2</version>
+            <executions>
+                <execution>
+                    <id>l4j-gui</id>
+                    <phase>deploy</phase>
+                    <goals>
+                        <goal>launch4j</goal>
+                    </goals>
+                    <configuration>
+                        <headerType>console</headerType>
+                        <outfile>target/ita.exe</outfile>
+                        <jar>target/${project.artifactId}-${project.version}.jar</jar>
+                        <!-- if <dontWrapJar>true</dontWrapJar> change to this conf <jar>${project.artifactId}-${project.version}.jar</jar> -->
+                        <dontWrapJar>false</dontWrapJar>
+                        <errTitle>Error in launch4j plugin</errTitle>
+                        <classPath>
+                            <mainClass>${mainClass}</mainClass>
+                        </classPath>
+                        <icon>res/windows.ico</icon>
+                        <jre>
+                            <path>jre</path>
+                            <minVersion>1.8.0</minVersion>
+                            <initialHeapSize>512</initialHeapSize>
+                            <maxHeapSize>1024</maxHeapSize>
+                        </jre>
+                        <versionInfo>
+                            <fileVersion>1.0.0.0</fileVersion>
+                            <txtFileVersion>1.0.0.0</txtFileVersion>
+                            <fileDescription>ImageToArray</fileDescription>
+                            <copyright>Copyright (c) 2019</copyright>
+                            <companyName>openstatic.org</companyName>
+                            <productVersion>1.0.0.0</productVersion>
+                            <txtProductVersion>${project.version}</txtProductVersion>
+                            <productName>ImageToArray</productName>
+                            <internalName>ImageToArray</internalName>
+                            <originalFilename>ita.exe</originalFilename>
+                        </versionInfo>
+                    </configuration>
+                </execution>
+            </executions>
+        </plugin>
     </plugins>
   </build>
 </project>

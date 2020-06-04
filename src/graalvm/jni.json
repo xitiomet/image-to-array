@@ -1,0 +1,9 @@
+[
+  {
+    "name" : "com.sun.imageio.plugins.jpeg.JPEGImageReader",
+    "allDeclaredConstructors" : true,
+    "allPublicConstructors" : true,
+    "allDeclaredMethods" : true,
+    "allPublicMethods" : true
+  }
+]
