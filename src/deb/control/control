@@ -4,5 +4,5 @@ Section: misc
 Priority: low
 Architecture: all
 Description: Image To Array
-Depends: default-jre
+Recommends: default-jre
 Maintainer: openstatic.org <support@openstatic.org>
