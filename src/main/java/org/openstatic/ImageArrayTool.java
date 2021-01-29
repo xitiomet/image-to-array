@@ -350,7 +350,7 @@ public class ImageArrayTool
 
             options.addOption(new Option("d", "details", false, "Output image details"));
             options.addOption(new Option("?", "help", false, "Shows help"));
-            options.addOption(new Option("i", "input", true, "Input image file"));
+            options.addOption(new Option("i", "input", true, "Input image file or URL"));
             options.addOption(new Option("p", "input-palette", true, "Input image file for color palette filter"));
             options.addOption(new Option("s", "scale", true, "Scale image (ex: 320x240 or 0.5)"));
             options.addOption(new Option("o", "output", true, "Output file (.txt or .png)"));
