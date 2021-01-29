@@ -6,10 +6,13 @@ import java.awt.image.AffineTransformOp;
 import java.awt.geom.AffineTransform;
 import java.awt.Graphics2D;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.ByteArrayOutputStream;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 
 import javax.imageio.ImageIO;
 import java.awt.Color;
@@ -31,11 +34,12 @@ import java.io.IOException;
 import java.util.regex.Pattern;
 
 import org.apache.commons.cli.*;
+import org.apache.commons.io.FilenameUtils;
 
 public class ImageArrayTool
 {
     public static String sourceImageName;
-    public static File sourceImageFile;
+    public static String sourceImageFilename;
     public static BufferedImage sourceImage;
     public static LinkedHashMap<GeoColor, String> ansiColors;
     
@@ -365,13 +369,23 @@ public class ImageArrayTool
                 formatter.printHelp( "ita", options );
                 System.exit(0);
             }
+
+            String sourceImagePath = cmd.getOptionValue('i',"input.png");
+            ImageArrayTool.sourceImageFilename = FilenameUtils.getName(sourceImagePath);
+
+            if (sourceImagePath.startsWith("http://") || sourceImagePath.startsWith("https://"))
+            {
+                URL u = new URL(sourceImagePath);
+                try (InputStream in = u.openStream()) {
+                    ImageArrayTool.sourceImage = ImageIO.read(in);
+                }
+            } else {
+                File sourceImageFile = new File(sourceImagePath);
+                ImageArrayTool.sourceImage = ImageIO.read(sourceImageFile);
+                ImageArrayTool.sourceImageFilename = sourceImageFile.getName();
+            }
             
-            ImageArrayTool.sourceImageFile = new File(cmd.getOptionValue('i',"input.png"));
-            ImageArrayTool.sourceImage = ImageIO.read(ImageArrayTool.sourceImageFile);
-            
-            
-            String fn = ImageArrayTool.sourceImageFile.getName();
-            ImageArrayTool.sourceImageName = fn.substring(0, fn.lastIndexOf('.'));
+            ImageArrayTool.sourceImageName = FilenameUtils.getBaseName(sourceImageFilename);
             
             if (cmd.hasOption("p"))
             {
@@ -404,7 +418,7 @@ public class ImageArrayTool
                 int w = ImageArrayTool.sourceImage.getWidth();
                 int h = ImageArrayTool.sourceImage.getHeight();
                 output.append("\n");
-                output.append("// filename = " + ImageArrayTool.sourceImageFile.getName() + "\n");
+                output.append("// filename = " + ImageArrayTool.sourceImageFilename + "\n");
                 output.append("// colors = " + String.valueOf(palette.size()) + "\n");
                 output.append("// width = " + String.valueOf(w) + "\n");
                 output.append("// height = " + String.valueOf(h) + "\n");
