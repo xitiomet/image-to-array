@@ -1,4 +1,4 @@
-## Image Array Tool ##
+## Image To Array Tool ##
 ![](https://raw.githubusercontent.com/xitiomet/image-to-array/master/res/icon128.png)
 
 Hosted on github https://github.com/xitiomet/image-to-array

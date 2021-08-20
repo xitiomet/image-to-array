@@ -11,7 +11,7 @@
     <mainClass>org.openstatic.ImageArrayTool</mainClass>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
-    <graalvm.version>20.1.0</graalvm.version>
+    <graalvm.version>21.2.0</graalvm.version>
   </properties>
   <repositories>
     <repository>
@@ -58,15 +58,6 @@
     </plugins>
   </reporting>
   <build>
-    <resources>
-        <resource>
-          <directory>res/</directory>
-          <includes>
-            <include>*.png</include>
-            <include>*.ico</include>
-          </includes>
-      </resource>
-    </resources>
     <plugins>
         <plugin>
             <groupId>org.apache.maven.plugins</groupId>
@@ -74,6 +65,7 @@
             <version>2.4.3</version>
             <configuration>
               <mainClass>${mainClass}</mainClass>
+              <goalPrefix>shade</goalPrefix>
               <transformers>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <mainClass>${mainClass}</mainClass>
@@ -108,10 +100,8 @@
                 <buildArgs>
                     --no-server
                     --no-fallback
-                    -H:EnableURLProtocols=http,https
-                    -H:Log=registerResource:
-                    -H:JNIConfigurationFiles=../src/graalvm/jni.json
-                    -H:+JNI
+                    --enable-https
+                    --enable-http
                 </buildArgs>
             </configuration>
        </plugin>
@@ -163,7 +153,7 @@
                               </mapper>
                             </data>
                             <data>
-                              <src>${basedir}/res/icon128.png</src>
+                              <src>${basedir}/src/main/resources/icon128.png</src>
                               <type>file</type>
                               <mapper>
                                 <type>perm</type>
@@ -205,7 +195,7 @@
                         <classPath>
                             <mainClass>${mainClass}</mainClass>
                         </classPath>
-                        <icon>res/windows.ico</icon>
+                        <icon>src/main/resources/windows.ico</icon>
                         <jre>
                             <path>jre</path>
                             <minVersion>1.8.0</minVersion>
