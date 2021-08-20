@@ -1,5 +1,5 @@
 ## Image To Array Tool ##
-![](https://raw.githubusercontent.com/xitiomet/image-to-array/master/res/icon128.png)
+![](https://raw.githubusercontent.com/xitiomet/image-to-array/master/src/main/resources/icon128.png)
 
 Hosted on github https://github.com/xitiomet/image-to-array
 
@@ -24,7 +24,7 @@ usage: ita
 ### Example Usage ###
 hearts.png (16x5 Image i want displayed on glasses)
 
-![](https://raw.githubusercontent.com/xitiomet/image-to-array/master/res/hearts2.png)
+![](https://raw.githubusercontent.com/xitiomet/image-to-array/master/src/main/resources/hearts2.png)
 ```bash
 $ ita -i hearts.png -c CRGB
 CRGB hearts[80] = { CRGB(102, 102, 102), CRGB(131, 24, 24), CRGB(255, 97, 239), CRGB(131, 24, 24), CRGB(255, 97, 239), CRGB(131, 24, 24), CRGB(0, 0, 0), CRGB(0, 0, 0), CRGB(0, 0, 0), CRGB(0, 0, 0), CRGB(131, 24, 24), CRGB(255, 97, 239), CRGB(131, 24, 24), CRGB(255, 97, 239), CRGB(131, 24, 24), CRGB(93, 93, 93), CRGB(131, 24, 24), CRGB(255, 97, 239), CRGB(255, 97, 239), CRGB(255, 97, 239), CRGB(255, 97, 239), CRGB(255, 97, 239), CRGB(131, 24, 24), CRGB(0, 0, 0), CRGB(0, 0, 0), CRGB(131, 24, 24), CRGB(255, 97, 239), CRGB(255, 97, 239), CRGB(255, 97, 239), CRGB(255, 97, 239), CRGB(255, 97, 239), CRGB(131, 24, 24), CRGB(131, 24, 24), CRGB(255, 97, 239), CRGB(255, 97, 239), CRGB(255, 97, 239), CRGB(255, 97, 239), CRGB(255, 97, 239), CRGB(131, 24, 24), CRGB(96, 96, 96), CRGB(96, 96, 96), CRGB(131, 24, 24), CRGB(255, 97, 239), CRGB(255, 97, 239), CRGB(255, 97, 239), CRGB(255, 97, 239), CRGB(255, 97, 239), CRGB(131, 24, 24), CRGB(0, 0, 0), CRGB(131, 24, 24), CRGB(254, 93, 225), CRGB(255, 97, 239), CRGB(255, 97, 239), CRGB(131, 24, 24), CRGB(0, 0, 0), CRGB(113, 113, 113), CRGB(113, 113, 113), CRGB(0, 0, 0), CRGB(131, 24, 24), CRGB(255, 97, 239), CRGB(255, 97, 239), CRGB(255, 97, 239), CRGB(131, 24, 24), CRGB(0, 0, 0), CRGB(93, 93, 93), CRGB(0, 0, 0), CRGB(131, 24, 24), CRGB(255, 97, 239), CRGB(131, 24, 24), CRGB(0, 0, 0), CRGB(104, 104, 104), CRGB(123, 123, 123), CRGB(123, 123, 123), CRGB(104, 104, 104), CRGB(0, 0, 0), CRGB(131, 24, 24), CRGB(255, 97, 239), CRGB(131, 24, 24), CRGB(0, 0, 0), CRGB(89, 89, 89) };

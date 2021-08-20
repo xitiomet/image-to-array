@@ -1,8 +1,7 @@
 Package: image-to-array
-Version: 1.0
+Version: 1.2
 Section: misc
 Priority: low
 Architecture: all
 Description: Image To Array
-Recommends: default-jre
 Maintainer: openstatic.org <support@openstatic.org>
