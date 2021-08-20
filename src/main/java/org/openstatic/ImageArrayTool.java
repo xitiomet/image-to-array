@@ -348,17 +348,17 @@ public class ImageArrayTool
             boolean rowNumbers = false;
             StringBuffer output = new StringBuffer();
 
-            options.addOption(new Option("d", "details", false, "Output image details"));
+            options.addOption(new Option("d", "details", false, "Add image details to output"));
             options.addOption(new Option("?", "help", false, "Shows help"));
             options.addOption(new Option("i", "input", true, "Input image file or URL"));
             options.addOption(new Option("p", "input-palette", true, "Input image file for color palette filter"));
             options.addOption(new Option("s", "scale", true, "Scale image (ex: 320x240 or 0.5)"));
             options.addOption(new Option("o", "output", true, "Output file (.txt or .png)"));
-            options.addOption(new Option("c", "output-array", true, "Output a RGB C/C++ struct array"));
-            options.addOption(new Option("2", "output-2d-array", true, "Output a RGB two dimensional C/C++ struct array"));
-            options.addOption(new Option("6", "output-base64", false, "Output a base64 png string"));
-            options.addOption(new Option("h", "output-html", false, "Output an html img tag with base64 encoded image"));
-            options.addOption(new Option("a", "output-ascii", false, "Output a 24-bit ASCII art image"));
+            options.addOption(new Option("c", "output-array", true, "Add a RGB C/C++ struct array to the output"));
+            options.addOption(new Option("2", "output-2d-array", true, "Add a RGB two dimensional C/C++ struct array to the output"));
+            options.addOption(new Option("6", "output-base64", false, "Add a base64 png string to the output"));
+            options.addOption(new Option("h", "output-html", false, "Add an html img tag with base64 encoded image to the output"));
+            options.addOption(new Option("a", "output-ascii", false, "Add a 24-bit ASCII art image to the output"));
             options.addOption(new Option("r", "row-numbers", false, "Include row numbers on ASCII art"));
 
             cmd = parser.parse(options, args);
@@ -366,7 +366,7 @@ public class ImageArrayTool
             if (cmd.hasOption("?") || cmd.getOptions().length == 0)
             {
                 HelpFormatter formatter = new HelpFormatter();
-                formatter.printHelp( "ita", options );
+                formatter.printHelp( "ita", "Image To Array: A tool for converting images to different forms of code" + System.lineSeparator() + "Project Page - https://openstatic.org/projects/imagetoarray/", options, "");
                 System.exit(0);
             }
 
