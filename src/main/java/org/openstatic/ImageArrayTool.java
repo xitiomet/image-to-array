@@ -7,10 +7,13 @@ import java.awt.geom.AffineTransform;
 import java.awt.Graphics2D;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.BufferedInputStream;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.ByteArrayOutputStream;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
@@ -31,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 
 import java.io.IOException;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.cli.*;
@@ -38,8 +42,10 @@ import org.apache.commons.io.FilenameUtils;
 
 public class ImageArrayTool
 {
-    public static String sourceImageName;
-    public static String sourceImageFilename;
+    public static String sourceImageBaseName;
+    public static String sourceImagePath;
+    public static String sourceImageFileName;
+    public static File sourceImageFile;
     public static BufferedImage sourceImage;
     public static LinkedHashMap<GeoColor, String> ansiColors;
     
@@ -258,7 +264,143 @@ public class ImageArrayTool
 
         return Math.round(hue * 360f);
     }
-    
+    public static BufferedImage loadImage(String sourceImagePath)
+    {
+        try
+        {
+            if (sourceImagePath.startsWith("http://") || sourceImagePath.startsWith("https://"))
+            {
+                URL u = new URL(sourceImagePath);
+                try (InputStream in = u.openStream()) {
+                    return ImageIO.read(in);
+                }
+            } else {
+                File sourceImageFile = new File(sourceImagePath);
+                return ImageIO.read(sourceImageFile);
+            }
+        } catch(Exception e) {
+            return null;
+        }
+    }
+
+    public static String loadText(String sourceTextPath)
+    {
+        try
+        {
+            if (sourceTextPath.startsWith("http://") || sourceTextPath.startsWith("https://"))
+            {
+                URL u = new URL(sourceTextPath);
+                try (InputStream in = u.openStream()) {
+                    BufferedInputStream bis = new BufferedInputStream(in);
+                    String rs = new String(bis.readAllBytes());
+                    bis.close();
+                    in.close();
+                    return rs;
+                }
+            } else {
+                File sourceImageFile = new File(sourceTextPath);
+                FileInputStream fis = new FileInputStream(sourceImageFile);
+                String rs = new String(fis.readAllBytes());
+                fis.close();
+                return rs;
+            }
+        } catch(Exception e) {
+            return null;
+        }
+    }
+
+    public static String getProtocolAndAuthority(String urlString) throws MalformedURLException
+    {
+        URL url = new URL(urlString);
+        String protocol = url.getProtocol();
+        String host = url.getHost();
+        int port = url.getPort();
+
+        // if the port is not explicitly specified in the input, it will be -1.
+        if (port == -1) {
+            return String.format("%s://%s", protocol, host);
+        } else {
+            return String.format("%s://%s:%d", protocol, host, port);
+        }
+    }
+
+    public static String transformSrcIntoBase64(String text)
+    {
+        Pattern p = Pattern.compile(
+            "(<img\\b[^>]*\\bsrc\\s*=\\s*)([\"\'])((?:(?!\\2)[^>])*)\\2(\\s*[^>]*>)",
+            Pattern.CASE_INSENSITIVE & Pattern.MULTILINE);
+        Matcher m = p.matcher(text);
+        StringBuffer sb = new StringBuffer();
+        while(m.find())
+        {
+            try 
+            {
+                String prefix = m.group(1) + m.group(2);
+                String found = m.group(3);
+                String postfix = m.group(2) + m.group(4);
+
+                String found_lower = found.toLowerCase();
+                if (!found.startsWith("/") && !found_lower.startsWith("http://") && !found_lower.startsWith("https://"))
+                {
+                    found = ImageArrayTool.sourceImagePath + found;
+                } else if (found.startsWith("/")) {
+                    String lcPath = ImageArrayTool.sourceImagePath.toLowerCase();
+                    if (lcPath.startsWith("http://") || lcPath.startsWith("https://"))
+                    {
+                        found = getProtocolAndAuthority(ImageArrayTool.sourceImagePath) + found;
+                    }
+                } else {
+                    String lcPath = ImageArrayTool.sourceImagePath.toLowerCase();
+                    if (lcPath.startsWith("http://") || lcPath.startsWith("https://"))
+                    {
+                        found = getProtocolAndAuthority(ImageArrayTool.sourceImagePath) + "/" + found;
+                    }
+                }
+                BufferedImage image = loadImage(found);
+                if (image != null)
+                {
+                    System.err.println("(src) Replacing URL: " + found);
+                    m.appendReplacement(sb, prefix + base64image(image) + postfix); 
+                } else {
+                    System.err.println("(src) Skipping URL: " + found);
+                    m.appendReplacement(sb, prefix + found + postfix);
+                }
+            } catch (Exception e) {
+                e.printStackTrace(System.err);
+            }
+        }
+        m.appendTail(sb);
+        return sb.toString();
+    }
+
+    public static String transformURLsIntoBase64(String text)
+    {
+        String urlValidationRegex = "\\b((?:https?|ftp|file)://[-a-zA-Z0-9+&@#/%?=~_|!:, .;]*[-a-zA-Z0-9+&@#/%=~_|])";
+        Pattern p = Pattern.compile(urlValidationRegex);
+        Matcher m = p.matcher(text);
+        StringBuffer sb = new StringBuffer();
+        while(m.find())
+        {
+            try 
+            {
+                String found = m.group(0);
+                BufferedImage image = loadImage(found);
+                if (image != null)
+                {
+                    System.err.println("(url) Replacing URL: " + found);
+                    m.appendReplacement(sb, base64image(image)); 
+                } else {
+                    System.err.println("(url) Skipping URL: " + found);
+                    m.appendReplacement(sb, found);
+                }
+            } catch (Exception e) {
+                e.printStackTrace(System.err);
+            }
+        }
+        m.appendTail(sb);
+        return sb.toString();
+    }
+
     public static String filenameExtension(String filename)
     {
         String extension = "";
@@ -360,6 +502,7 @@ public class ImageArrayTool
             options.addOption(new Option("h", "output-html", false, "Add an html img tag with base64 encoded image to the output"));
             options.addOption(new Option("a", "output-ascii", false, "Add a 24-bit ASCII art image to the output"));
             options.addOption(new Option("r", "row-numbers", false, "Include row numbers on ASCII art"));
+            options.addOption(new Option("b", "replace-urls", false, "Replace all image urls in a text file with base64 images"));
 
             cmd = parser.parse(options, args);
 
@@ -370,87 +513,107 @@ public class ImageArrayTool
                 System.exit(0);
             }
 
-            String sourceImagePath = cmd.getOptionValue('i',"input.png");
-            ImageArrayTool.sourceImageFilename = FilenameUtils.getName(sourceImagePath);
-
-            if (sourceImagePath.startsWith("http://") || sourceImagePath.startsWith("https://"))
+            String sourceImageParameter = cmd.getOptionValue('i',"input.png");
+            ImageArrayTool.sourceImageFileName = FilenameUtils.getName(sourceImageParameter);
+            ImageArrayTool.sourceImagePath = FilenameUtils.getPath(sourceImageParameter);
+            ImageArrayTool.sourceImageBaseName = FilenameUtils.getBaseName(sourceImageParameter);
+            try
             {
-                URL u = new URL(sourceImagePath);
-                try (InputStream in = u.openStream()) {
-                    ImageArrayTool.sourceImage = ImageIO.read(in);
+                if (sourceImagePath.startsWith("http://") || sourceImagePath.startsWith("https://"))
+                {
+                    URL u = new URL(sourceImagePath);
+                    try (InputStream in = u.openStream()) {
+                        ImageArrayTool.sourceImage = ImageIO.read(in);
+                    }
+                } else {
+                    ImageArrayTool.sourceImageFile = new File(sourceImageParameter);
+                    ImageArrayTool.sourceImageFileName = ImageArrayTool.sourceImageFile.getName();
+                    ImageArrayTool.sourceImage = ImageIO.read(sourceImageFile);
                 }
-            } else {
-                File sourceImageFile = new File(sourceImagePath);
-                ImageArrayTool.sourceImage = ImageIO.read(sourceImageFile);
-                ImageArrayTool.sourceImageFilename = sourceImageFile.getName();
+            } catch (Exception e) {
+
             }
-            
-            ImageArrayTool.sourceImageName = FilenameUtils.getBaseName(sourceImageFilename);
-            
-            if (cmd.hasOption("p"))
+                        
+            if (cmd.hasOption("b"))
             {
-                BufferedImage paletteImage = ImageIO.read(new File(cmd.getOptionValue('p',"palette.png")));
-                Set<GeoColor> newPalette = reducePalette(getPalette(paletteImage), 256);
-                ImageArrayTool.sourceImage = applyPalette(ImageArrayTool.sourceImage, newPalette);
+                String textBody = loadText(sourceImageParameter);
+                textBody = transformSrcIntoBase64(textBody);
+                String updatedBody = transformURLsIntoBase64(textBody);
+                output.append(updatedBody);
             }
-            
-            if (cmd.hasOption("s"))
-            {
-                ImageArrayTool.sourceImage = resizeImage(cmd.getOptionValue('s',"48x48"), ImageArrayTool.sourceImage, false);
-            }
-            
-            // All Filters should be bfore this line
-            GeoColor[][] sourceImageArray = convertTo2DArray(ImageArrayTool.sourceImage);
             
             if (cmd.hasOption("r"))
+            {
                 rowNumbers = true;
-            
-            if (cmd.hasOption("a"))
-            {
-                output.append(getAsciiArt(sourceImageArray, rowNumbers));
             }
-            
-            if (cmd.hasOption("d"))
+
+            if (ImageArrayTool.sourceImage != null)
             {
-                Set<GeoColor> palette = getPalette(ImageArrayTool.sourceImage);
-                Set<GeoColor> reducedPalette = reducePalette(palette, 256);
-                String cStrip = getColorStrip(reducedPalette);
-                int w = ImageArrayTool.sourceImage.getWidth();
-                int h = ImageArrayTool.sourceImage.getHeight();
-                output.append("\n");
-                output.append("// filename = " + ImageArrayTool.sourceImageFilename + "\n");
-                output.append("// colors = " + String.valueOf(palette.size()) + "\n");
-                output.append("// width = " + String.valueOf(w) + "\n");
-                output.append("// height = " + String.valueOf(h) + "\n");
-                output.append("// pixels = " + String.valueOf(w*h) + "\n");
-                output.append("\n");
-                output.append("reduced palette [256]:\n" + cStrip + "\n\n");
-            }
-            
-            if (cmd.hasOption("c"))
-            {
-                output.append(getRGBArray(ImageArrayTool.sourceImageName, cmd.getOptionValue('c',"CRGB"), sourceImageArray) + "\n");
-            }
-            
-            if (cmd.hasOption("2"))
-            {
-                output.append(get2DRGBArray(ImageArrayTool.sourceImageName, cmd.getOptionValue('2',"CRGB"), sourceImageArray) + "\n");
-            }
-            
-            if (cmd.hasOption("6"))
-            {
+                if (cmd.hasOption("p") && ImageArrayTool.sourceImage != null)
+                {
+                    BufferedImage paletteImage = ImageIO.read(new File(cmd.getOptionValue('p',"palette.png")));
+                    Set<GeoColor> newPalette = reducePalette(getPalette(paletteImage), 256);
+                    ImageArrayTool.sourceImage = applyPalette(ImageArrayTool.sourceImage, newPalette);
+                }
                 
-                output.append(base64image(ImageArrayTool.sourceImage));
+                if (cmd.hasOption("s") && ImageArrayTool.sourceImage != null)
+                {
+                    ImageArrayTool.sourceImage = resizeImage(cmd.getOptionValue('s',"48x48"), ImageArrayTool.sourceImage, false);
+                }
+
+                // All Filters should be bfore this line
+                GeoColor[][] sourceImageArray = convertTo2DArray(ImageArrayTool.sourceImage);
+                
+                
+                if (cmd.hasOption("a"))
+                {
+                    output.append(getAsciiArt(sourceImageArray, rowNumbers));
+                }
+                
+                if (cmd.hasOption("d"))
+                {
+                    Set<GeoColor> palette = getPalette(ImageArrayTool.sourceImage);
+                    Set<GeoColor> reducedPalette = reducePalette(palette, 256);
+                    String cStrip = getColorStrip(reducedPalette);
+                    int w = ImageArrayTool.sourceImage.getWidth();
+                    int h = ImageArrayTool.sourceImage.getHeight();
+                    output.append("\n");
+                    output.append("// filename = " + ImageArrayTool.sourceImageFileName + "\n");
+                    output.append("// basename = " + ImageArrayTool.sourceImageBaseName + "\n");
+                    output.append("// path = " + ImageArrayTool.sourceImagePath + "\n");
+                    output.append("// colors = " + String.valueOf(palette.size()) + "\n");
+                    output.append("// width = " + String.valueOf(w) + "\n");
+                    output.append("// height = " + String.valueOf(h) + "\n");
+                    output.append("// pixels = " + String.valueOf(w*h) + "\n");
+                    output.append("\n");
+                    output.append("reduced palette [256]:\n" + cStrip + "\n\n");
+                }
+                
+                if (cmd.hasOption("c"))
+                {
+                    output.append(getRGBArray(ImageArrayTool.sourceImageBaseName, cmd.getOptionValue('c',"CRGB"), sourceImageArray) + "\n");
+                }
+                
+                if (cmd.hasOption("2"))
+                {
+                    output.append(get2DRGBArray(ImageArrayTool.sourceImageBaseName, cmd.getOptionValue('2',"CRGB"), sourceImageArray) + "\n");
+                }
+                
+                if (cmd.hasOption("6"))
+                {
+                    
+                    output.append(base64image(ImageArrayTool.sourceImage));
+                }
+                
+                if (cmd.hasOption("h"))
+                {
+                    output.append("<img id=\"img" + ImageArrayTool.sourceImageBaseName + "\" src=\"" + base64image(ImageArrayTool.sourceImage) + "\" />");
+                }
             }
-            
-            if (cmd.hasOption("h"))
-            {
-                output.append("<img id=\"img" + ImageArrayTool.sourceImageName + "\" src=\"" + base64image(ImageArrayTool.sourceImage) + "\" />");
-            }
-            
+
             if (cmd.hasOption("o"))
             {
-                String filename = cmd.getOptionValue('o',"output.png");
+                String filename = cmd.getOptionValue('o', ImageArrayTool.sourceImageBaseName + "_ita.png");
                 if (output.length() == 0)
                 {
                     String ext = filenameExtension(filename);
