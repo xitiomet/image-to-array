@@ -3,17 +3,31 @@
 
 Hosted on github https://github.com/xitiomet/image-to-array
 
-Simple Command line tool for converting images to data arrays. I made this to use with my RGB Shades (http://macetech.com/store/index.php?main_page=product_info&products_id=59), I wanted a simple way to convert any image into an array of pixels compatable with Arduino's FastLED Library. I may have gone past the original scope a bit, i added scaling and palette manipulation.
+Simple Command line tool for converting images to data arrays. I made this to use with my RGB Shades (http://macetech.com/store/index.php?main_page=product_info&products_id=59), I wanted a simple way to convert any image into an array of pixels compatable with Arduino's FastLED Library. 
+
+As time has gone on features now include
+  * Converting images to base64 image strings and html
+  * Resizing images
+  * Finding all image urls in a text/html document and replacing them with base64 strings (also works with markdown!)
+  * Output 24-bit ASCII Art
+  * Replace color palette with nearest colors from another image
+  * Output 2 dimensional or 1 dimensional array for C/C++/Java
 
 ```bash
 usage: ita
- -2,--output-2d-array <arg>   Output a RGB two dimensional C++ struct
-                              array
- -6,--output-base64           Output a base64 png string
+Image To Array: A tool for converting images to different forms of code
+Project Page - https://openstatic.org/projects/imagetoarray/
+ -2,--output-2d-array <arg>   Add a RGB two dimensional C/C++ struct array
+                              to the output
+ -6,--output-base64           Add a base64 png string to the output
  -?,--help                    Shows help
- -a,--output-ascii            Output a 24-bit ASCII art image
- -c,--output-array <arg>      Output a RGB C++ struct array
- -d,--details                 Output image details
+ -a,--output-ascii            Add a 24-bit ASCII art image to the output
+ -b,--replace-urls            Replace all image urls in a text file with
+                              base64 images
+ -c,--output-array <arg>      Add a RGB C/C++ struct array to the output
+ -d,--details                 Add image details to output
+ -h,--output-html             Add an html img tag with base64 encoded
+                              image to the output
  -i,--input <arg>             Input image file or URL
  -o,--output <arg>            Output file (.txt or .png)
  -p,--input-palette <arg>     Input image file for color palette filter
