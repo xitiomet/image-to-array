@@ -601,7 +601,7 @@ public class ImageArrayTool
             options.addOption(new Option("i", "input", true, "Input file or URL (png,jpg,md,html,bmp,gif,txt)"));
             options.addOption(new Option("p", "input-palette", true, "Input image file for color palette filter"));
             options.addOption(new Option("s", "scale", true, "Scale image (ex: 320x240 or 0.5)"));
-            options.addOption(new Option("o", "output", true, "Output file (txt,html,md,png,bmp,gif,jpg)"));
+            options.addOption(new Option("o", "output", true, "Output a file instead of STDOUT (txt,html,md,png,bmp,gif,jpg)"));
             options.addOption(new Option("c", "output-array", true, "Add a RGB C/C++ struct array to the output"));
             options.addOption(new Option("2", "output-2d-array", true, "Add a RGB two dimensional C/C++ struct array to the output"));
             options.addOption(new Option("6", "output-base64", true, "Add a base64 string to the output (argument is format JPEG,GIF,PNG)"));
@@ -609,7 +609,7 @@ public class ImageArrayTool
             options.addOption(new Option("a", "output-ascii", false, "Add a 24-bit ASCII art image to the output"));
             options.addOption(new Option("r", "row-numbers", false, "Include row numbers on ASCII art"));
             options.addOption(new Option("b", "replace-urls", false, "Replace all image urls in a text file with base64 images"));
-            options.addOption(new Option("t", "replace-tags", false, "Replace all image tage in an html file with base64 images"));
+            options.addOption(new Option("t", "replace-tags", false, "Replace all image tags in an html file with base64 images"));
 
             cmd = parser.parse(options, args);
 

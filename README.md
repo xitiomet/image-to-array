@@ -19,7 +19,8 @@ Image To Array: A tool for converting images to different forms of code
 Project Page - https://openstatic.org/projects/imagetoarray/
  -2,--output-2d-array <arg>   Add a RGB two dimensional C/C++ struct array
                               to the output
- -6,--output-base64           Add a base64 png string to the output
+ -6,--output-base64 <arg>     Add a base64 string to the output (argument
+                              is format JPEG,GIF,PNG)
  -?,--help                    Shows help
  -a,--output-ascii            Add a 24-bit ASCII art image to the output
  -b,--replace-urls            Replace all image urls in a text file with
@@ -28,11 +29,15 @@ Project Page - https://openstatic.org/projects/imagetoarray/
  -d,--details                 Add image details to output
  -h,--output-html             Add an html img tag with base64 encoded
                               image to the output
- -i,--input <arg>             Input image file or URL
- -o,--output <arg>            Output file (.txt or .png)
+ -i,--input <arg>             Input file or URL
+                              (png,jpg,md,html,bmp,gif,txt)
+ -o,--output <arg>            Output a file instead of STDOUT
+                              (txt,html,md,png,bmp,gif,jpg)
  -p,--input-palette <arg>     Input image file for color palette filter
  -r,--row-numbers             Include row numbers on ASCII art
  -s,--scale <arg>             Scale image (ex: 320x240 or 0.5)
+ -t,--replace-tags            Replace all image tags in an html file with
+                              base64 images
 ```
 
 ### Example Usage ###
