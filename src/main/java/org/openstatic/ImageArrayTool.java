@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.ByteArrayOutputStream;
+import java.io.ByteArrayInputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -213,6 +214,7 @@ public class ImageArrayTool
         }
     }
     
+    // Produce Ascii art string of all the colors in the set
     public static String getColorStrip(Set<GeoColor> colors)
     {
         StringBuffer sb = new StringBuffer();
@@ -233,6 +235,7 @@ public class ImageArrayTool
         return sb.toString() + "\u001B[0m";
     }
     
+    // Convert 2 dimensional GeoColor array into ascii art
     public static String getAsciiArt(GeoColor[][] ary, boolean lineNumbers)
     {
         StringBuffer sb = new StringBuffer();
@@ -264,47 +267,67 @@ public class ImageArrayTool
 
         return Math.round(hue * 360f);
     }
+
+    public static boolean isImage(byte[] bytes)
+    {
+        try
+        {
+            BufferedImage bi = ImageIO.read(new ByteArrayInputStream(bytes));
+            return bi.getType() != BufferedImage.TYPE_CUSTOM;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    
+    // Load a bufferedimage from a url or path
     public static BufferedImage loadImage(String sourceImagePath)
     {
         try
         {
-            if (sourceImagePath.startsWith("http://") || sourceImagePath.startsWith("https://"))
-            {
-                URL u = new URL(sourceImagePath);
-                try (InputStream in = u.openStream()) {
-                    return ImageIO.read(in);
-                }
-            } else {
-                File sourceImageFile = new File(sourceImagePath);
-                return ImageIO.read(sourceImageFile);
-            }
-        } catch(Exception e) {
+            byte[] bytes = loadBytes(sourceImagePath);
+            ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
+            return ImageIO.read(bais);
+        } catch (Exception e) {
             return null;
         }
     }
 
-    public static String loadText(String sourceTextPath)
+    // Load a byte array from a url or path
+    public static byte[] loadBytes(String sourceTextPath)
     {
         try
         {
-            if (sourceTextPath.startsWith("http://") || sourceTextPath.startsWith("https://"))
+            String lcSourceTextPath = sourceTextPath.toLowerCase();
+            if (lcSourceTextPath.startsWith("http://") || lcSourceTextPath.startsWith("https://"))
             {
                 URL u = new URL(sourceTextPath);
                 try (InputStream in = u.openStream()) {
                     BufferedInputStream bis = new BufferedInputStream(in);
-                    String rs = new String(bis.readAllBytes());
+                    byte[] rBytes = bis.readAllBytes();
                     bis.close();
                     in.close();
-                    return rs;
+                    return rBytes;
                 }
             } else {
                 File sourceImageFile = new File(sourceTextPath);
                 FileInputStream fis = new FileInputStream(sourceImageFile);
-                String rs = new String(fis.readAllBytes());
+                byte[] rBytes = fis.readAllBytes();
                 fis.close();
-                return rs;
+                return rBytes;
             }
         } catch(Exception e) {
+            return new byte[]{};
+        }
+    }
+
+    // Load a String from a url or path
+    public static String loadText(String sourceTextPath)
+    {
+        byte[] data = loadBytes(sourceTextPath);
+        if (data.length > 0)
+        {
+            return new String(data);
+        } else {
             return null;
         }
     }
@@ -324,10 +347,10 @@ public class ImageArrayTool
         }
     }
 
+    // Search an html document for any src="" and replace images with base64 encoded images.
     public static String transformSrcIntoBase64(String text)
     {
-        Pattern p = Pattern.compile(
-            "(<img\\b[^>]*\\bsrc\\s*=\\s*)([\"\'])((?:(?!\\2)[^>])*)\\2(\\s*[^>]*>)",
+        Pattern p = Pattern.compile("(<img\\b[^>]*\\bsrc\\s*=\\s*)([\"\'])((?:(?!\\2)[^>])*)\\2(\\s*[^>]*>)",
             Pattern.CASE_INSENSITIVE & Pattern.MULTILINE);
         Matcher m = p.matcher(text);
         StringBuffer sb = new StringBuffer();
@@ -356,13 +379,21 @@ public class ImageArrayTool
                         found = getProtocolAndAuthority(ImageArrayTool.sourceImagePath) + "/" + found;
                     }
                 }
-                BufferedImage image = loadImage(found);
-                if (image != null)
+                byte[] imageBytes = loadBytes(found);
+                if (imageBytes.length > 0)
                 {
-                    System.err.println("(src) Replacing URL: " + found);
-                    m.appendReplacement(sb, prefix + base64image(image) + postfix); 
+                    if (isImage(imageBytes))
+                    {
+                        String mime = "image/png";
+                        if (found_lower.endsWith(".gif"))
+                            mime = "image/gif";
+                        System.err.println("[src] Replacing URL: " + found);
+                        m.appendReplacement(sb, prefix + base64Data(imageBytes, mime) + postfix);
+                    } else {
+                        System.err.println("[src] Skipping URL (Not an Image): " + found);
+                    }
                 } else {
-                    System.err.println("(src) Skipping URL: " + found);
+                    System.err.println("[src] Skipping URL (No Data): " + found);
                     m.appendReplacement(sb, prefix + found + postfix);
                 }
             } catch (Exception e) {
@@ -384,13 +415,22 @@ public class ImageArrayTool
             try 
             {
                 String found = m.group(0);
-                BufferedImage image = loadImage(found);
-                if (image != null)
+                String found_lower = found.toLowerCase();
+                byte[] imageBytes = loadBytes(found);
+                if (imageBytes.length > 0)
                 {
-                    System.err.println("(url) Replacing URL: " + found);
-                    m.appendReplacement(sb, base64image(image)); 
+                    if (isImage(imageBytes))
+                    {
+                        String mime = "image/png";
+                        if (found_lower.endsWith(".gif"))
+                            mime = "image/gif";
+                        System.err.println("[url] Replacing URL: " + found);
+                        m.appendReplacement(sb, base64Data(imageBytes, mime));
+                    } else {
+                        System.err.println("[url] Skipping URL (Not an Image): " + found);
+                    }
                 } else {
-                    System.err.println("(url) Skipping URL: " + found);
+                    System.err.println("[url] Skipping URL (No Data): " + found);
                     m.appendReplacement(sb, found);
                 }
             } catch (Exception e) {
@@ -412,14 +452,39 @@ public class ImageArrayTool
         return extension;
     }
     
-    public static String base64image(BufferedImage image) throws Exception
+    public static String base64image(BufferedImage image, String format) throws Exception
     {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ImageIO.write(image, "PNG", baos);
-        String res = "data:image/png;base64," + Base64.getEncoder().encodeToString(baos.toByteArray());
-        return res.trim();
+        String formatUC = format.toUpperCase();
+        String mime = null;
+        if (formatUC.equals("PNG"))
+            mime = "image/png";
+        else if (formatUC.equals("GIF"))
+            mime = "image/gif";
+        else if (formatUC.equals("JPEG"))
+            mime = "image/jpeg";
+        if (mime != null)
+        {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(image, formatUC, baos);
+            return base64Data(baos.toByteArray(), mime);
+        } else {
+            return null;
+        }
     }
     
+
+    public static String base64Data(byte[] bytes, String mime) throws Exception
+    {
+        if (mime != null)
+        {
+            String res = "data:" + mime + ";base64," + Base64.getEncoder().encodeToString(bytes);
+            return res.trim();
+        } else {
+            return null;
+        }
+    }
+
+
     public static String get2DRGBArray(String n, String fun, GeoColor[][] ary)
     {
         int rows = ary.length;
@@ -492,13 +557,13 @@ public class ImageArrayTool
 
             options.addOption(new Option("d", "details", false, "Add image details to output"));
             options.addOption(new Option("?", "help", false, "Shows help"));
-            options.addOption(new Option("i", "input", true, "Input image file or URL"));
+            options.addOption(new Option("i", "input", true, "Input file or URL (png,jpg,md,html,bmp,gif,txt)"));
             options.addOption(new Option("p", "input-palette", true, "Input image file for color palette filter"));
             options.addOption(new Option("s", "scale", true, "Scale image (ex: 320x240 or 0.5)"));
-            options.addOption(new Option("o", "output", true, "Output file (.txt or .png)"));
+            options.addOption(new Option("o", "output", true, "Output file (txt,html,md,png,bmp,gif,jpg)"));
             options.addOption(new Option("c", "output-array", true, "Add a RGB C/C++ struct array to the output"));
             options.addOption(new Option("2", "output-2d-array", true, "Add a RGB two dimensional C/C++ struct array to the output"));
-            options.addOption(new Option("6", "output-base64", false, "Add a base64 png string to the output"));
+            options.addOption(new Option("6", "output-base64", true, "Add a base64 string to the output (argument is format JPEG,GIF,PNG)"));
             options.addOption(new Option("h", "output-html", false, "Add an html img tag with base64 encoded image to the output"));
             options.addOption(new Option("a", "output-ascii", false, "Add a 24-bit ASCII art image to the output"));
             options.addOption(new Option("r", "row-numbers", false, "Include row numbers on ASCII art"));
@@ -529,7 +594,7 @@ public class ImageArrayTool
                     ImageArrayTool.sourceImageFile = new File(sourceImageParameter);
                     ImageArrayTool.sourceImageFileName = ImageArrayTool.sourceImageFile.getName();
                     ImageArrayTool.sourceImage = ImageIO.read(sourceImageFile);
-                }
+                }   
             } catch (Exception e) {
 
             }
@@ -602,12 +667,12 @@ public class ImageArrayTool
                 if (cmd.hasOption("6"))
                 {
                     
-                    output.append(base64image(ImageArrayTool.sourceImage));
+                    output.append(base64image(ImageArrayTool.sourceImage, cmd.getOptionValue("6","PNG")));
                 }
                 
                 if (cmd.hasOption("h"))
                 {
-                    output.append("<img id=\"img" + ImageArrayTool.sourceImageBaseName + "\" src=\"" + base64image(ImageArrayTool.sourceImage) + "\" />");
+                    output.append("<img id=\"img" + ImageArrayTool.sourceImageBaseName + "\" src=\"" + base64image(ImageArrayTool.sourceImage, "PNG") + "\" />");
                 }
             }
 
