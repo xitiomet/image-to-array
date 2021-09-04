@@ -46,7 +46,7 @@ public class ImageArrayTool
     public static String sourceImageBaseName;
     public static String sourceImagePath;
     public static String sourceImageFileName;
-    public static File sourceImageFile;
+    public static byte[] sourceData;
     public static BufferedImage sourceImage;
     public static LinkedHashMap<GeoColor, String> ansiColors;
     
@@ -278,6 +278,12 @@ public class ImageArrayTool
             return false;
         }
     }
+
+    public static boolean isSVG(byte[] bytes)
+    {
+        String data = (new String(bytes)).toLowerCase().trim();
+        return data.startsWith("<svg") || (data.startsWith("<?xml") && data.contains("<svg"));
+    }
     
     // Load a bufferedimage from a url or path
     public static BufferedImage loadImage(String sourceImagePath)
@@ -298,7 +304,7 @@ public class ImageArrayTool
         try
         {
             String lcSourceTextPath = sourceTextPath.toLowerCase();
-            if (lcSourceTextPath.startsWith("http://") || lcSourceTextPath.startsWith("https://"))
+            if (lcSourceTextPath.startsWith("http:/") || lcSourceTextPath.startsWith("https:/"))
             {
                 URL u = new URL(sourceTextPath);
                 try (InputStream in = u.openStream()) {
@@ -356,48 +362,72 @@ public class ImageArrayTool
         StringBuffer sb = new StringBuffer();
         while(m.find())
         {
+            String prefix = m.group(1) + m.group(2);
+            String found = m.group(3);
+            String postfix = m.group(2) + m.group(4);
+            String found_lower = found.toLowerCase();
             try 
             {
-                String prefix = m.group(1) + m.group(2);
-                String found = m.group(3);
-                String postfix = m.group(2) + m.group(4);
-
-                String found_lower = found.toLowerCase();
-                if (!found.startsWith("/") && !found_lower.startsWith("http://") && !found_lower.startsWith("https://"))
+                //System.err.println("");
+                //System.err.println("[src] FOUND: " + found);
+                if (!found.startsWith("/") && !found_lower.startsWith("http:/") && !found_lower.startsWith("https:/"))
                 {
+                    // This image path is relative
                     found = ImageArrayTool.sourceImagePath + found;
-                } else if (found.startsWith("/")) {
+                } else if (found_lower.startsWith("//")) {
+                    // This image path is a specific url but doesnt contain protocol
                     String lcPath = ImageArrayTool.sourceImagePath.toLowerCase();
-                    if (lcPath.startsWith("http://") || lcPath.startsWith("https://"))
+                    if (lcPath.startsWith("https"))
+                    {
+                        found = "https:" + found;
+                    } else if (lcPath.startsWith("http")) {
+                        found = "http:" + found;
+                    }
+                } else if (found_lower.startsWith("/")) {
+                    // this image path is relative to the root of the domain
+                    String lcPath = ImageArrayTool.sourceImagePath.toLowerCase();
+                    if (lcPath.startsWith("http:/") || lcPath.startsWith("https:/"))
                     {
                         found = getProtocolAndAuthority(ImageArrayTool.sourceImagePath) + found;
                     }
+                } else if (found_lower.startsWith("http:/") || found_lower.startsWith("https:/")) {
+                    // this url path is a full url do nothing to change it!
                 } else {
-                    String lcPath = ImageArrayTool.sourceImagePath.toLowerCase();
-                    if (lcPath.startsWith("http://") || lcPath.startsWith("https://"))
-                    {
-                        found = getProtocolAndAuthority(ImageArrayTool.sourceImagePath) + "/" + found;
-                    }
+                    found = (ImageArrayTool.sourceImagePath + "/" + found).replaceAll(Pattern.quote("//"),"/");
                 }
+                //System.err.println("");
+                //System.err.println("[src] FOUND: " + found);
                 byte[] imageBytes = loadBytes(found);
                 if (imageBytes.length > 0)
                 {
-                    if (isImage(imageBytes))
+                    if (isSVG(imageBytes))
                     {
-                        String mime = "image/png";
-                        if (found_lower.endsWith(".gif"))
-                            mime = "image/gif";
-                        System.err.println("[src] Replacing URL: " + found);
-                        m.appendReplacement(sb, prefix + base64Data(imageBytes, mime) + postfix);
+                        System.err.println("[src] Replacing URL (image/svg+xml): " + found);
+                        m.appendReplacement(sb, prefix + base64Data(imageBytes, "image/svg+xml") + postfix);
                     } else {
-                        System.err.println("[src] Skipping URL (Not an Image): " + found);
+                        ByteArrayInputStream bais = new ByteArrayInputStream(imageBytes);
+                        BufferedImage bImage = ImageIO.read(bais);
+                        if (bImage.getType() != BufferedImage.TYPE_CUSTOM) // Makse sure its really an image.
+                        {
+                            if (found_lower.endsWith(".gif"))
+                            {
+                                System.err.println("[src] Replacing URL (image/gif): " + found);
+                                m.appendReplacement(sb, prefix + base64Data(imageBytes, "image/gif") + postfix);
+                            } else {
+                                System.err.println("[src] Replacing URL (image/png): " + found);
+                                m.appendReplacement(sb, prefix + base64image(bImage, "PNG") + postfix);
+                            }
+                        } else {
+                            System.err.println("[src] Skipping URL (Not an Image): " + found);
+                        }
                     }
                 } else {
                     System.err.println("[src] Skipping URL (No Data): " + found);
                     m.appendReplacement(sb, prefix + found + postfix);
                 }
+
             } catch (Exception e) {
-                e.printStackTrace(System.err);
+                System.err.println("[src] Skipping URL (Not an Image): " + found);
             }
         }
         m.appendTail(sb);
@@ -412,29 +442,40 @@ public class ImageArrayTool
         StringBuffer sb = new StringBuffer();
         while(m.find())
         {
+            String found = m.group(0);
+            String found_lower = found.toLowerCase();
             try 
             {
-                String found = m.group(0);
-                String found_lower = found.toLowerCase();
                 byte[] imageBytes = loadBytes(found);
                 if (imageBytes.length > 0)
                 {
-                    if (isImage(imageBytes))
+                    ByteArrayInputStream bais = new ByteArrayInputStream(imageBytes);
+                    if (isSVG(imageBytes))
                     {
-                        String mime = "image/png";
-                        if (found_lower.endsWith(".gif"))
-                            mime = "image/gif";
-                        System.err.println("[url] Replacing URL: " + found);
-                        m.appendReplacement(sb, base64Data(imageBytes, mime));
+                        System.err.println("[url] Replacing URL (image/svg+xml): " + found);
+                        m.appendReplacement(sb, base64Data(imageBytes, "image/svg+xml"));
                     } else {
-                        System.err.println("[url] Skipping URL (Not an Image): " + found);
+                        BufferedImage bImage = ImageIO.read(bais);
+                        if (bImage.getType() != BufferedImage.TYPE_CUSTOM) // Makse sure its really an image.
+                        {
+                            if (found_lower.endsWith(".gif"))
+                            {
+                                System.err.println("[url] Replacing URL (image/gif): " + found);
+                                m.appendReplacement(sb, base64Data(imageBytes, "image/gif"));
+                            } else {
+                                System.err.println("[url] Replacing URL (image/png): " + found);
+                                m.appendReplacement(sb, base64image(bImage, "PNG"));
+                            }
+                        } else {
+                            System.err.println("[url] Skipping URL (Not an Image): " + found);
+                        }
                     }
                 } else {
                     System.err.println("[url] Skipping URL (No Data): " + found);
                     m.appendReplacement(sb, found);
                 }
             } catch (Exception e) {
-                e.printStackTrace(System.err);
+                System.err.println("[url] Skipping URL (Not an Image): " + found);
             }
         }
         m.appendTail(sb);
@@ -568,6 +609,7 @@ public class ImageArrayTool
             options.addOption(new Option("a", "output-ascii", false, "Add a 24-bit ASCII art image to the output"));
             options.addOption(new Option("r", "row-numbers", false, "Include row numbers on ASCII art"));
             options.addOption(new Option("b", "replace-urls", false, "Replace all image urls in a text file with base64 images"));
+            options.addOption(new Option("t", "replace-tags", false, "Replace all image tage in an html file with base64 images"));
 
             cmd = parser.parse(options, args);
 
@@ -582,31 +624,32 @@ public class ImageArrayTool
             ImageArrayTool.sourceImageFileName = FilenameUtils.getName(sourceImageParameter);
             ImageArrayTool.sourceImagePath = FilenameUtils.getPath(sourceImageParameter);
             ImageArrayTool.sourceImageBaseName = FilenameUtils.getBaseName(sourceImageParameter);
+            ImageArrayTool.sourceData = loadBytes(sourceImageParameter);
             try
             {
-                if (sourceImagePath.startsWith("http://") || sourceImagePath.startsWith("https://"))
+                ByteArrayInputStream bais = new ByteArrayInputStream(ImageArrayTool.sourceData);
+                ImageArrayTool.sourceImage = ImageIO.read(bais);
+                if (ImageArrayTool.sourceImage != null)
                 {
-                    URL u = new URL(sourceImagePath);
-                    try (InputStream in = u.openStream()) {
-                        ImageArrayTool.sourceImage = ImageIO.read(in);
+                    if (ImageArrayTool.sourceImage.getType() == BufferedImage.TYPE_CUSTOM)
+                    {
+                        ImageArrayTool.sourceImage = null;
                     }
-                } else {
-                    ImageArrayTool.sourceImageFile = new File(sourceImageParameter);
-                    ImageArrayTool.sourceImageFileName = ImageArrayTool.sourceImageFile.getName();
-                    ImageArrayTool.sourceImage = ImageIO.read(sourceImageFile);
-                }   
+                }
             } catch (Exception e) {
-
-            }
-                        
-            if (cmd.hasOption("b"))
-            {
-                String textBody = loadText(sourceImageParameter);
-                textBody = transformSrcIntoBase64(textBody);
-                String updatedBody = transformURLsIntoBase64(textBody);
-                output.append(updatedBody);
+                ImageArrayTool.sourceImage = null;
             }
             
+            if (cmd.hasOption("t") || cmd.hasOption("b"))
+            {
+                String textBody = loadText(sourceImageParameter);
+                if (cmd.hasOption("t"))
+                    textBody = transformSrcIntoBase64(textBody);
+                if (cmd.hasOption("b"))
+                    textBody = transformURLsIntoBase64(textBody);
+                output.append(textBody);
+            }
+
             if (cmd.hasOption("r"))
             {
                 rowNumbers = true;
