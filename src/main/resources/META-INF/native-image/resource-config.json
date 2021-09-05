@@ -1,5 +1,10 @@
 {
   "resources":{
-  "includes":[]},
+  "includes":[
+    {"pattern":"\\QMETA-INF/services/javax.imageio.spi.ImageReaderSpi\\E"}, 
+    {"pattern":"\\QMETA-INF/services/javax.imageio.spi.ImageWriterSpi\\E"}, 
+    {"pattern":"\\Qnative/linux/64/libwebp-imageio.so\\E"}, 
+    {"pattern":"\\Qnative/win/64/webp-imageio.dll\\E"}
+  ]},
   "bundles":[{"name":"sun.awt.resources.awt"}]
 }

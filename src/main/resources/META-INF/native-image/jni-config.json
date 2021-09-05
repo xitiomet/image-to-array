@@ -15,6 +15,16 @@
   ]
 },
 {
+  "name":"com.sun.imageio.plugins.jpeg.JPEGImageWriter",
+  "methods":[
+    {"name":"grabPixels","parameterTypes":["int"] }, 
+    {"name":"warningOccurred","parameterTypes":["int"] }, 
+    {"name":"warningWithMessage","parameterTypes":["java.lang.String"] }, 
+    {"name":"writeMetadata","parameterTypes":[] }, 
+    {"name":"writeOutputData","parameterTypes":["byte[]","int","int"] }
+  ]
+},
+{
   "name":"java.awt.AWTError",
   "methods":[{"name":"<init>","parameterTypes":["java.lang.String"] }]
 },
@@ -29,6 +39,32 @@
   "name":"java.awt.Color",
   "fields":[{"name":"value"}],
   "methods":[{"name":"getRGB","parameterTypes":[] }]
+},
+{
+  "name":"java.awt.Insets",
+  "fields":[
+    {"name":"bottom"}, 
+    {"name":"left"}, 
+    {"name":"right"}, 
+    {"name":"top"}
+  ],
+  "methods":[{"name":"<init>","parameterTypes":["int","int","int","int"] }]
+},
+{
+  "name":"java.awt.Rectangle",
+  "fields":[
+    {"name":"height"}, 
+    {"name":"width"}, 
+    {"name":"x"}, 
+    {"name":"y"}
+  ]
+},
+{
+  "name":"java.awt.Toolkit",
+  "methods":[
+    {"name":"getDefaultToolkit","parameterTypes":[] }, 
+    {"name":"getFontMetrics","parameterTypes":["java.awt.Font"] }
+  ]
 },
 {
   "name":"java.awt.color.ICC_Profile",
@@ -86,6 +122,9 @@
     {"name":"transparency"}
   ],
   "methods":[{"name":"getRGBdefault","parameterTypes":[] }]
+},
+{
+  "name":"java.awt.image.ComponentColorModel"
 },
 {
   "name":"java.awt.image.DirectColorModel"

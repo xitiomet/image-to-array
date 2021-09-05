@@ -173,9 +173,46 @@ public class ImageArrayTool
         String name = ImageArrayTool.ansiColors.get(colour);
         return name;
     }
+
+    public static String bufferedImageTypeName(int biType)
+    {
+        switch(biType)
+        {
+            case BufferedImage.TYPE_3BYTE_BGR:
+                return "3BYTE_BGR";
+            case BufferedImage.TYPE_4BYTE_ABGR:
+                return "4BYTE_ABGR";
+            case BufferedImage.TYPE_4BYTE_ABGR_PRE:
+                return "4BYTE_ABGR_PRE";
+            case BufferedImage.TYPE_BYTE_BINARY:
+                return "BYTE_BINARY";
+            case BufferedImage.TYPE_BYTE_GRAY:
+                return "BYTE_GRAY";
+            case BufferedImage.TYPE_BYTE_INDEXED:
+                return "BYTE_INDEXED";
+            case BufferedImage.TYPE_CUSTOM:
+                return "CUSTOM";
+            case BufferedImage.TYPE_INT_ARGB:
+                return "INT_ARGB";
+            case BufferedImage.TYPE_INT_ARGB_PRE:
+                return "INT_ARGB_PRE";
+            case BufferedImage.TYPE_INT_BGR:
+                return "INT_BGR";
+            case BufferedImage.TYPE_INT_RGB:
+                return "INT_RGB";
+            case BufferedImage.TYPE_USHORT_555_RGB:
+                return "USHORT_555_RGB";
+            case BufferedImage.TYPE_USHORT_565_RGB:
+                return "USHORT_565_RGB";
+            case BufferedImage.TYPE_USHORT_GRAY:
+                return "USHORT_GRAY";
+            default:
+                return "UNKNOWN";
+        }
+    }
     
     
-    public static BufferedImage resizeImage(String amount, BufferedImage in_image, boolean alpha)
+    public static BufferedImage resizeImage(String amount, BufferedImage in_image)
     {
         float scale_to_float = 0;
         float w = 0;
@@ -192,23 +229,25 @@ public class ImageArrayTool
             w = (o_w * scale_to_float);
             h = (o_h * scale_to_float);
         }
-        if (!alpha)
+        int iType = in_image.getType();
+        if (iType == BufferedImage.TYPE_INT_ARGB || iType == BufferedImage.TYPE_4BYTE_ABGR)
         {
+            //debugMessage("Alpha Channel Detected on Scaling");
             AffineTransform at = new AffineTransform();
             at.scale(w/o_w, h/o_h);
             AffineTransformOp scaleOp = new AffineTransformOp(at, AffineTransformOp.TYPE_BILINEAR);
-            BufferedImage rgbi = new BufferedImage(in_image.getWidth(), in_image.getHeight(), BufferedImage.TYPE_INT_RGB);
-            rgbi.createGraphics().drawImage(in_image, 0, 0, Color.WHITE, null);
-            BufferedImage ri = new BufferedImage((int)w, (int)h, BufferedImage.TYPE_INT_RGB);
+            BufferedImage rgbi = new BufferedImage(in_image.getWidth(), in_image.getHeight(), iType);
+            rgbi.createGraphics().drawImage(in_image, 0, 0, new Color(1f,1f,1f,0f), null);
+            BufferedImage ri = new BufferedImage((int)w, (int)h, iType);
             scaleOp.filter(rgbi, ri);
             return ri;
         } else {
             AffineTransform at = new AffineTransform();
             at.scale(w/o_w, h/o_h);
             AffineTransformOp scaleOp = new AffineTransformOp(at, AffineTransformOp.TYPE_BILINEAR);
-            BufferedImage rgbi = new BufferedImage(in_image.getWidth(), in_image.getHeight(), BufferedImage.TYPE_INT_ARGB);
-            rgbi.createGraphics().drawImage(in_image, 0, 0, new Color(1f,1f,1f,0f), null);
-            BufferedImage ri = new BufferedImage((int)w, (int)h, BufferedImage.TYPE_INT_ARGB);
+            BufferedImage rgbi = new BufferedImage(in_image.getWidth(), in_image.getHeight(), BufferedImage.TYPE_INT_RGB);
+            rgbi.createGraphics().drawImage(in_image, 0, 0, Color.WHITE, null);
+            BufferedImage ri = new BufferedImage((int)w, (int)h, BufferedImage.TYPE_INT_RGB);
             scaleOp.filter(rgbi, ri);
             return ri;
         }
@@ -368,8 +407,6 @@ public class ImageArrayTool
             String found_lower = found.toLowerCase();
             try 
             {
-                //System.err.println("");
-                //System.err.println("[src] FOUND: " + found);
                 if (!found.startsWith("/") && !found_lower.startsWith("http:/") && !found_lower.startsWith("https:/"))
                 {
                     // This image path is relative
@@ -395,14 +432,12 @@ public class ImageArrayTool
                 } else {
                     found = (ImageArrayTool.sourceImagePath + "/" + found).replaceAll(Pattern.quote("//"),"/");
                 }
-                //System.err.println("");
-                //System.err.println("[src] FOUND: " + found);
                 byte[] imageBytes = loadBytes(found);
                 if (imageBytes.length > 0)
                 {
                     if (isSVG(imageBytes))
                     {
-                        System.err.println("[src] Replacing URL (image/svg+xml): " + found);
+                        debugMessage("[src] Replacing URL (image/svg+xml): " + found);
                         m.appendReplacement(sb, prefix + base64Data(imageBytes, "image/svg+xml") + postfix);
                     } else {
                         ByteArrayInputStream bais = new ByteArrayInputStream(imageBytes);
@@ -411,23 +446,23 @@ public class ImageArrayTool
                         {
                             if (found_lower.endsWith(".gif"))
                             {
-                                System.err.println("[src] Replacing URL (image/gif): " + found);
+                                debugMessage("[src] Replacing URL (image/gif): " + found);
                                 m.appendReplacement(sb, prefix + base64Data(imageBytes, "image/gif") + postfix);
                             } else {
-                                System.err.println("[src] Replacing URL (image/png): " + found);
+                                debugMessage("[src] Replacing URL (image/png): " + found);
                                 m.appendReplacement(sb, prefix + base64image(bImage, "PNG") + postfix);
                             }
                         } else {
-                            System.err.println("[src] Skipping URL (Not an Image): " + found);
+                            debugMessage("[src] Skipping URL (Not an Image): " + found);
                         }
                     }
                 } else {
-                    System.err.println("[src] Skipping URL (No Data): " + found);
+                    debugMessage("[src] Skipping URL (No Data): " + found);
                     m.appendReplacement(sb, prefix + found + postfix);
                 }
 
             } catch (Exception e) {
-                System.err.println("[src] Skipping URL (Not an Image): " + found);
+                debugMessage("[src] Skipping URL (Not an Image): " + found);
             }
         }
         m.appendTail(sb);
@@ -452,7 +487,7 @@ public class ImageArrayTool
                     ByteArrayInputStream bais = new ByteArrayInputStream(imageBytes);
                     if (isSVG(imageBytes))
                     {
-                        System.err.println("[url] Replacing URL (image/svg+xml): " + found);
+                        debugMessage("[url] Replacing URL (image/svg+xml): " + found);
                         m.appendReplacement(sb, base64Data(imageBytes, "image/svg+xml"));
                     } else {
                         BufferedImage bImage = ImageIO.read(bais);
@@ -460,22 +495,22 @@ public class ImageArrayTool
                         {
                             if (found_lower.endsWith(".gif"))
                             {
-                                System.err.println("[url] Replacing URL (image/gif): " + found);
+                                debugMessage("[url] Replacing URL (image/gif): " + found);
                                 m.appendReplacement(sb, base64Data(imageBytes, "image/gif"));
                             } else {
-                                System.err.println("[url] Replacing URL (image/png): " + found);
+                                debugMessage("[url] Replacing URL (image/png): " + found);
                                 m.appendReplacement(sb, base64image(bImage, "PNG"));
                             }
                         } else {
-                            System.err.println("[url] Skipping URL (Not an Image): " + found);
+                            debugMessage("[url] Skipping URL (Not an Image): " + found);
                         }
                     }
                 } else {
-                    System.err.println("[url] Skipping URL (No Data): " + found);
+                    debugMessage("[url] Skipping URL (No Data): " + found);
                     m.appendReplacement(sb, found);
                 }
             } catch (Exception e) {
-                System.err.println("[url] Skipping URL (Not an Image): " + found);
+                debugMessage("[url] Skipping URL (Not an Image): " + found);
             }
         }
         m.appendTail(sb);
@@ -495,18 +530,20 @@ public class ImageArrayTool
     
     public static String base64image(BufferedImage image, String format) throws Exception
     {
-        String formatUC = format.toUpperCase();
+        String formatLC = format.toLowerCase();
         String mime = null;
-        if (formatUC.equals("PNG"))
+        if (formatLC.equals("png"))
             mime = "image/png";
-        else if (formatUC.equals("GIF"))
+        else if (formatLC.equals("gif"))
             mime = "image/gif";
-        else if (formatUC.equals("JPEG"))
+        else if (formatLC.equals("jpeg"))
             mime = "image/jpeg";
+        else if (formatLC.equals("webp"))
+            mime = "image/webp";
         if (mime != null)
         {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ImageIO.write(image, formatUC, baos);
+            ImageIO.write(image, formatLC, baos);
             return base64Data(baos.toByteArray(), mime);
         } else {
             return null;
@@ -564,6 +601,11 @@ public class ImageArrayTool
         return sb.toString();
     }
 
+    public static void debugMessage(String text)
+    {
+        System.err.println(text);
+    }
+
     public static void main(String[] args) throws IOException 
     {
         ImageArrayTool.ansiColors = new LinkedHashMap();
@@ -598,13 +640,19 @@ public class ImageArrayTool
 
             options.addOption(new Option("d", "details", false, "Add image details to output"));
             options.addOption(new Option("?", "help", false, "Shows help"));
-            options.addOption(new Option("i", "input", true, "Input file or URL (png,jpg,md,html,bmp,gif,txt)"));
+
+            Option inputOption = Option.builder("i").desc("Input files or URLs (png,jpg,md,html,bmp,gif,txt,webp)").hasArgs().longOpt("input").valueSeparator(' ').build();
+            options.addOption(inputOption);
+            
             options.addOption(new Option("p", "input-palette", true, "Input image file for color palette filter"));
             options.addOption(new Option("s", "scale", true, "Scale image (ex: 320x240 or 0.5)"));
-            options.addOption(new Option("o", "output", true, "Output a file instead of STDOUT (txt,html,md,png,bmp,gif,jpg)"));
+
+            Option outputOption = Option.builder("o").desc("Output a file instead of STDOUT (txt,html,md,png,bmp,gif,jpg,webp)").hasArgs().longOpt("output").valueSeparator(' ').build();
+            options.addOption(outputOption);
+            
             options.addOption(new Option("c", "output-array", true, "Add a RGB C/C++ struct array to the output"));
-            options.addOption(new Option("2", "output-2d-array", true, "Add a RGB two dimensional C/C++ struct array to the output"));
-            options.addOption(new Option("6", "output-base64", true, "Add a base64 string to the output (argument is format JPEG,GIF,PNG)"));
+            options.addOption(new Option("x", "output-2d-array", true, "Add a RGB two dimensional C/C++ struct array to the output"));
+            options.addOption(new Option("e", "output-base64", true, "Add a base64 string to the output (argument is format JPEG,GIF,PNG,WEBP)"));
             options.addOption(new Option("h", "output-html", false, "Add an html img tag with base64 encoded image to the output"));
             options.addOption(new Option("a", "output-ascii", false, "Add a 24-bit ASCII art image to the output"));
             options.addOption(new Option("r", "row-numbers", false, "Include row numbers on ASCII art"));
@@ -620,120 +668,151 @@ public class ImageArrayTool
                 System.exit(0);
             }
 
-            String sourceImageParameter = cmd.getOptionValue('i',"input.png");
-            ImageArrayTool.sourceImageFileName = FilenameUtils.getName(sourceImageParameter);
-            ImageArrayTool.sourceImagePath = FilenameUtils.getPath(sourceImageParameter);
-            ImageArrayTool.sourceImageBaseName = FilenameUtils.getBaseName(sourceImageParameter);
-            ImageArrayTool.sourceData = loadBytes(sourceImageParameter);
-            try
+            String[] sourceImageParameters = cmd.getOptionValues('i');
+            debugMessage("Input Files: " + Arrays.asList(sourceImageParameters).toString());
+            for(int i = 0; i < sourceImageParameters.length; i++)
             {
-                ByteArrayInputStream bais = new ByteArrayInputStream(ImageArrayTool.sourceData);
-                ImageArrayTool.sourceImage = ImageIO.read(bais);
+                String sourceImageParameter = sourceImageParameters[i];
+                ImageArrayTool.sourceImageFileName = FilenameUtils.getName(sourceImageParameter);
+                ImageArrayTool.sourceImagePath = FilenameUtils.getPath(sourceImageParameter);
+                ImageArrayTool.sourceImageBaseName = FilenameUtils.getBaseName(sourceImageParameter);
+                ImageArrayTool.sourceData = loadBytes(sourceImageParameter);
+                try
+                {
+                    ByteArrayInputStream bais = new ByteArrayInputStream(ImageArrayTool.sourceData);
+                    ImageArrayTool.sourceImage = ImageIO.read(bais);
+                    if (ImageArrayTool.sourceImage != null)
+                    {
+                        if (ImageArrayTool.sourceImage.getType() == BufferedImage.TYPE_CUSTOM)
+                        {
+                            ImageArrayTool.sourceImage = null;
+                        }
+                    }
+                } catch (Exception e) {
+                    ImageArrayTool.sourceImage = null;
+                }
+                
+                if (cmd.hasOption("t") || cmd.hasOption("b"))
+                {
+                    String textBody = loadText(sourceImageParameter);
+                    if (cmd.hasOption("t"))
+                        textBody = transformSrcIntoBase64(textBody);
+                    if (cmd.hasOption("b"))
+                        textBody = transformURLsIntoBase64(textBody);
+                    output.append(textBody);
+                }
+
+                if (cmd.hasOption("r"))
+                {
+                    rowNumbers = true;
+                }
+
                 if (ImageArrayTool.sourceImage != null)
                 {
-                    if (ImageArrayTool.sourceImage.getType() == BufferedImage.TYPE_CUSTOM)
+                    if (cmd.hasOption("p") && ImageArrayTool.sourceImage != null)
                     {
-                        ImageArrayTool.sourceImage = null;
+                        BufferedImage paletteImage = ImageIO.read(new File(cmd.getOptionValue('p',"palette.png")));
+                        Set<GeoColor> newPalette = reducePalette(getPalette(paletteImage), 256);
+                        ImageArrayTool.sourceImage = applyPalette(ImageArrayTool.sourceImage, newPalette);
+                    }
+                    
+                    if (cmd.hasOption("s") && ImageArrayTool.sourceImage != null)
+                    {
+                        ImageArrayTool.sourceImage = resizeImage(cmd.getOptionValue('s',"48x48"), ImageArrayTool.sourceImage);
+                    }
+
+                    // All Filters should be bfore this line
+                    GeoColor[][] sourceImageArray = convertTo2DArray(ImageArrayTool.sourceImage);
+                    
+                    
+                    if (cmd.hasOption("a"))
+                    {
+                        output.append(getAsciiArt(sourceImageArray, rowNumbers));
+                    }
+                    
+                    if (cmd.hasOption("d"))
+                    {
+                        Set<GeoColor> palette = getPalette(ImageArrayTool.sourceImage);
+                        Set<GeoColor> reducedPalette = reducePalette(palette, 256);
+                        String cStrip = getColorStrip(reducedPalette);
+                        int w = ImageArrayTool.sourceImage.getWidth();
+                        int h = ImageArrayTool.sourceImage.getHeight();
+                        output.append(System.lineSeparator());
+                        output.append("// filename = " + ImageArrayTool.sourceImageFileName + System.lineSeparator());
+                        output.append("// basename = " + ImageArrayTool.sourceImageBaseName + System.lineSeparator());
+                        output.append("// path = " + ImageArrayTool.sourceImagePath + System.lineSeparator());
+                        output.append("// colors = " + String.valueOf(palette.size()) + System.lineSeparator());
+                        output.append("// image type = " + bufferedImageTypeName(ImageArrayTool.sourceImage.getType()) + System.lineSeparator());
+                        output.append("// width = " + String.valueOf(w) + System.lineSeparator());
+                        output.append("// height = " + String.valueOf(h) + System.lineSeparator());
+                        output.append("// pixels = " + String.valueOf(w*h) + System.lineSeparator());
+                        output.append(System.lineSeparator());
+                        output.append("reduced palette [256]:" + System.lineSeparator() + cStrip + System.lineSeparator() + System.lineSeparator());
+                    }
+                    
+                    if (cmd.hasOption("c"))
+                    {
+                        output.append(getRGBArray(ImageArrayTool.sourceImageBaseName, cmd.getOptionValue('c',"CRGB"), sourceImageArray) + System.lineSeparator());
+                    }
+                    
+                    if (cmd.hasOption("x"))
+                    {
+                        output.append(get2DRGBArray(ImageArrayTool.sourceImageBaseName, cmd.getOptionValue('x',"CRGB"), sourceImageArray) + System.lineSeparator());
+                    }
+                    
+                    if (cmd.hasOption("e"))
+                    {
+                        output.append(base64image(ImageArrayTool.sourceImage, cmd.getOptionValue("e","PNG")));
+                    }
+                    
+                    if (cmd.hasOption("h"))
+                    {
+                        output.append("<img id=\"ita_" + ImageArrayTool.sourceImageBaseName + "\" src=\"" + base64image(ImageArrayTool.sourceImage, "PNG") + "\" />" + System.lineSeparator());
+                    }
+
+                    if (cmd.hasOption("o") && output.length() == 0)
+                    {
+                        String[] outputFilenames = cmd.getOptionValues('o');
+                        if (outputFilenames.length == 1)
+                        {
+                            String filename = outputFilenames[0];
+                            if (outputFilenames[0].startsWith("."))
+                            {
+                                filename = ImageArrayTool.sourceImageBaseName + outputFilenames[0];
+                            }
+                            String ext = filenameExtension(filename).toLowerCase();
+                            ImageIO.write(ImageArrayTool.sourceImage, ext, new File(filename));
+                            debugMessage("Wrote (" + ext + "): " + filename);
+                        } else {
+                            if (i < outputFilenames.length)
+                            {
+                                String filename = outputFilenames[i];
+                                String ext = filenameExtension(filename).toLowerCase();
+                                ImageIO.write(ImageArrayTool.sourceImage, ext, new File(filename));
+                                debugMessage("Wrote (" + ext + "): " + filename);
+                            }
+                        }
                     }
                 }
-            } catch (Exception e) {
-                ImageArrayTool.sourceImage = null;
-            }
-            
-            if (cmd.hasOption("t") || cmd.hasOption("b"))
-            {
-                String textBody = loadText(sourceImageParameter);
-                if (cmd.hasOption("t"))
-                    textBody = transformSrcIntoBase64(textBody);
-                if (cmd.hasOption("b"))
-                    textBody = transformURLsIntoBase64(textBody);
-                output.append(textBody);
             }
 
-            if (cmd.hasOption("r"))
+            if (output.length() > 0)
             {
-                rowNumbers = true;
-            }
-
-            if (ImageArrayTool.sourceImage != null)
-            {
-                if (cmd.hasOption("p") && ImageArrayTool.sourceImage != null)
+                if (cmd.hasOption("o"))
                 {
-                    BufferedImage paletteImage = ImageIO.read(new File(cmd.getOptionValue('p',"palette.png")));
-                    Set<GeoColor> newPalette = reducePalette(getPalette(paletteImage), 256);
-                    ImageArrayTool.sourceImage = applyPalette(ImageArrayTool.sourceImage, newPalette);
-                }
-                
-                if (cmd.hasOption("s") && ImageArrayTool.sourceImage != null)
-                {
-                    ImageArrayTool.sourceImage = resizeImage(cmd.getOptionValue('s',"48x48"), ImageArrayTool.sourceImage, false);
-                }
-
-                // All Filters should be bfore this line
-                GeoColor[][] sourceImageArray = convertTo2DArray(ImageArrayTool.sourceImage);
-                
-                
-                if (cmd.hasOption("a"))
-                {
-                    output.append(getAsciiArt(sourceImageArray, rowNumbers));
-                }
-                
-                if (cmd.hasOption("d"))
-                {
-                    Set<GeoColor> palette = getPalette(ImageArrayTool.sourceImage);
-                    Set<GeoColor> reducedPalette = reducePalette(palette, 256);
-                    String cStrip = getColorStrip(reducedPalette);
-                    int w = ImageArrayTool.sourceImage.getWidth();
-                    int h = ImageArrayTool.sourceImage.getHeight();
-                    output.append("\n");
-                    output.append("// filename = " + ImageArrayTool.sourceImageFileName + "\n");
-                    output.append("// basename = " + ImageArrayTool.sourceImageBaseName + "\n");
-                    output.append("// path = " + ImageArrayTool.sourceImagePath + "\n");
-                    output.append("// colors = " + String.valueOf(palette.size()) + "\n");
-                    output.append("// width = " + String.valueOf(w) + "\n");
-                    output.append("// height = " + String.valueOf(h) + "\n");
-                    output.append("// pixels = " + String.valueOf(w*h) + "\n");
-                    output.append("\n");
-                    output.append("reduced palette [256]:\n" + cStrip + "\n\n");
-                }
-                
-                if (cmd.hasOption("c"))
-                {
-                    output.append(getRGBArray(ImageArrayTool.sourceImageBaseName, cmd.getOptionValue('c',"CRGB"), sourceImageArray) + "\n");
-                }
-                
-                if (cmd.hasOption("2"))
-                {
-                    output.append(get2DRGBArray(ImageArrayTool.sourceImageBaseName, cmd.getOptionValue('2',"CRGB"), sourceImageArray) + "\n");
-                }
-                
-                if (cmd.hasOption("6"))
-                {
-                    
-                    output.append(base64image(ImageArrayTool.sourceImage, cmd.getOptionValue("6","PNG")));
-                }
-                
-                if (cmd.hasOption("h"))
-                {
-                    output.append("<img id=\"img" + ImageArrayTool.sourceImageBaseName + "\" src=\"" + base64image(ImageArrayTool.sourceImage, "PNG") + "\" />");
-                }
-            }
-
-            if (cmd.hasOption("o"))
-            {
-                String filename = cmd.getOptionValue('o', ImageArrayTool.sourceImageBaseName + "_ita.png");
-                if (output.length() == 0)
-                {
-                    String ext = filenameExtension(filename);
-                    ImageIO.write(ImageArrayTool.sourceImage, ext, new File(filename));
-                } else {
-                    BufferedWriter bwr = new BufferedWriter(new FileWriter(new File(cmd.getOptionValue('o',"output.txt"))));
+                    String filename = cmd.getOptionValue('o',"output.txt");
+                    if (filename.startsWith("."))
+                    {
+                        filename = ImageArrayTool.sourceImageBaseName + filename;
+                    }
+                    BufferedWriter bwr = new BufferedWriter(new FileWriter(new File(filename)));
                     bwr.write(output.toString());
                     bwr.flush();
                     bwr.close();
+                    debugMessage("Wrote: " + filename);
+                } else {
+                    System.out.println(output.toString());
                 }
-            } else {
-                System.out.println(output.toString());
             }
         } catch (Exception e) {
             e.printStackTrace(System.err);

@@ -12,32 +12,33 @@ As time has gone on features now include
   * Output 24-bit ASCII Art
   * Replace color palette with nearest colors from another image
   * Output 2 dimensional or 1 dimensional array for C/C++/Java
+  * Support for reading/writing WEBP images
 
 ```bash
 usage: ita
 Image To Array: A tool for converting images to different forms of code
 Project Page - https://openstatic.org/projects/imagetoarray/
- -2,--output-2d-array <arg>   Add a RGB two dimensional C/C++ struct array
-                              to the output
- -6,--output-base64 <arg>     Add a base64 string to the output (argument
-                              is format JPEG,GIF,PNG)
  -?,--help                    Shows help
  -a,--output-ascii            Add a 24-bit ASCII art image to the output
  -b,--replace-urls            Replace all image urls in a text file with
                               base64 images
  -c,--output-array <arg>      Add a RGB C/C++ struct array to the output
  -d,--details                 Add image details to output
+ -e,--output-base64 <arg>     Add a base64 string to the output (argument
+                              is format JPEG,GIF,PNG,WEBP)
  -h,--output-html             Add an html img tag with base64 encoded
                               image to the output
- -i,--input <arg>             Input file or URL
-                              (png,jpg,md,html,bmp,gif,txt)
+ -i,--input <arg>             Input files or URLs
+                              (png,jpg,md,html,bmp,gif,txt,webp)
  -o,--output <arg>            Output a file instead of STDOUT
-                              (txt,html,md,png,bmp,gif,jpg)
+                              (txt,html,md,png,bmp,gif,jpg,webp)
  -p,--input-palette <arg>     Input image file for color palette filter
  -r,--row-numbers             Include row numbers on ASCII art
  -s,--scale <arg>             Scale image (ex: 320x240 or 0.5)
  -t,--replace-tags            Replace all image tags in an html file with
                               base64 images
+ -x,--output-2d-array <arg>   Add a RGB two dimensional C/C++ struct array
+                              to the output
 ```
 
 ### Example Usage ###
