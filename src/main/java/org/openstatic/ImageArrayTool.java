@@ -1,10 +1,8 @@
 package org.openstatic;
 
 import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferByte;
 import java.awt.image.AffineTransformOp;
 import java.awt.geom.AffineTransform;
-import java.awt.Graphics2D;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -17,7 +15,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.ByteArrayInputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -25,19 +22,13 @@ import javax.imageio.ImageIO;
 import java.awt.Color;
 
 import java.util.Base64;
-import java.util.Vector;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Set;
-import java.util.Enumeration;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.ArrayList;
-import java.util.Comparator;
 
-import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -45,7 +36,6 @@ import org.apache.commons.cli.*;
 import org.apache.commons.io.FilenameUtils;
 
 import net.ifok.image.image4j.codec.ico.ICOEncoder;
-import com.github.gino0631.common.io.IoStreams;
 import com.github.gino0631.icns.*;
 
 public class ImageArrayTool
@@ -372,18 +362,6 @@ public class ImageArrayTool
         }
     }
 
-    // Load a String from a url or path
-    public static String loadText(String sourceTextPath)
-    {
-        byte[] data = loadBytes(sourceTextPath);
-        if (data.length > 0)
-        {
-            return new String(data);
-        } else {
-            return null;
-        }
-    }
-
     public static String getProtocolAndAuthority(String urlString) throws MalformedURLException
     {
         URL url = new URL(urlString);
@@ -635,7 +613,8 @@ public class ImageArrayTool
                 int[] bpps = new int[icons.size()];
                 for(int i = 0; i<icons.size(); i++) bpps[i] = 32;
                 ICOEncoder.write(icons, bpps, file);
-            } if (type.equals("icns")) {
+                debugMessage("Wrote (" + type + "): " + file.toString());
+            } else if (type.equals("icns")) {
                 try (IcnsBuilder builder = IcnsBuilder.getInstance())
                 {
                     builder.add(IcnsType.ICNS_16x16_JPEG_PNG_IMAGE, readablePNG("16x16", ImageArrayTool.sourceImage));
@@ -648,6 +627,30 @@ public class ImageArrayTool
                     Path output = file.toPath();
                     OutputStream os = Files.newOutputStream(output);
                     builtIcons.writeTo(os);
+                    debugMessage("Wrote (" + type + "): " + file.toString());
+                } catch (Exception e) {
+                    e.printStackTrace(System.err);
+                }
+            } else if (type.equals("html")) {
+                try
+                {
+                    String htmlData = "<img id=\"ita_" + ImageArrayTool.sourceImageBaseName + "\" src=\"" + base64image(ImageArrayTool.sourceImage, "PNG") + "\" />" + System.lineSeparator();
+                    BufferedWriter bwr = new BufferedWriter(new FileWriter(file));
+                    bwr.write(htmlData);
+                    bwr.flush();
+                    bwr.close();
+                    debugMessage("Wrote (" + type + "): " + file.toString());
+                } catch (Exception e) {
+                    e.printStackTrace(System.err);
+                }
+            } else if (type.equals("md")) {
+                try
+                {
+                    String htmlData = "![ita_" + ImageArrayTool.sourceImageBaseName + "](" + base64image(ImageArrayTool.sourceImage, "PNG") + ")" + System.lineSeparator();
+                    BufferedWriter bwr = new BufferedWriter(new FileWriter(file));
+                    bwr.write(htmlData);
+                    bwr.flush();
+                    bwr.close();
                     debugMessage("Wrote (" + type + "): " + file.toString());
                 } catch (Exception e) {
                     e.printStackTrace(System.err);
@@ -704,11 +707,9 @@ public class ImageArrayTool
 
             Option outputOption = Option.builder("o").desc("Output a file instead of STDOUT (txt,html,md,png,bmp,gif,jpg,webp,ico,icns)").hasArgs().longOpt("output").valueSeparator(' ').build();
             options.addOption(outputOption);
-            
-            options.addOption(new Option("c", "output-array", true, "Add a RGB C/C++ struct array to the output"));
-            options.addOption(new Option("x", "output-2d-array", true, "Add a RGB two dimensional C/C++ struct array to the output"));
+            options.addOption(new Option("c", "output-rgb-array", true, "Add a RGB C/C++ struct array to the output"));
+            options.addOption(new Option("x", "output-rgb-2d-array", true, "Add a RGB two dimensional C/C++ struct array to the output"));
             options.addOption(new Option("e", "output-base64", true, "Add a base64 string to the output (argument is format JPEG,GIF,PNG,WEBP)"));
-            options.addOption(new Option("h", "output-html", false, "Add an html img tag with base64 encoded image to the output"));
             options.addOption(new Option("a", "output-ascii", false, "Add a 24-bit ASCII art image to the output"));
             options.addOption(new Option("r", "row-numbers", false, "Include row numbers on ASCII art"));
             options.addOption(new Option("b", "replace-urls", false, "Replace all image urls in a text file with base64 images"));
@@ -747,7 +748,7 @@ public class ImageArrayTool
                 
                 if (cmd.hasOption("t") || cmd.hasOption("b"))
                 {
-                    String textBody = loadText(sourceImageParameter);
+                    String textBody = new String(ImageArrayTool.sourceData);
                     if (cmd.hasOption("t"))
                         textBody = transformSrcIntoBase64(textBody);
                     if (cmd.hasOption("b"))
@@ -812,15 +813,10 @@ public class ImageArrayTool
                     {
                         output.append(get2DRGBArray(ImageArrayTool.sourceImageBaseName, cmd.getOptionValue('x',"CRGB"), sourceImageArray) + System.lineSeparator());
                     }
-                    
+
                     if (cmd.hasOption("e"))
                     {
                         output.append(base64image(ImageArrayTool.sourceImage, cmd.getOptionValue("e","PNG")));
-                    }
-                    
-                    if (cmd.hasOption("h"))
-                    {
-                        output.append("<img id=\"ita_" + ImageArrayTool.sourceImageBaseName + "\" src=\"" + base64image(ImageArrayTool.sourceImage, "PNG") + "\" />" + System.lineSeparator());
                     }
 
                     if (cmd.hasOption("o") && output.length() == 0)

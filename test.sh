@@ -9,3 +9,7 @@
 #java -agentlib:native-image-agent=config-merge-dir=src/main/resources/META-INF/native-image/ -jar target/image-to-array-1.0-SNAPSHOT.jar -i cat.png -o cat.gif
 
 java -Djava.awt.headless=true -agentlib:native-image-agent=config-merge-dir=src/main/resources/META-INF/native-image/ -jar target/image-to-array-1.*.jar -i arrows.png -o .ico -o .icns
+rm arrows.icns
+rm arrows.ico
+java -Djava.awt.headless=true -agentlib:native-image-agent=config-merge-dir=src/main/resources/META-INF/native-image/ -jar target/image-to-array-1.*.jar -i http://openstatic.org/boat/boat.png -o .webp
+rm boat.webp

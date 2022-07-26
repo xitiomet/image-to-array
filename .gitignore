@@ -6,3 +6,6 @@ dependency-reduced-pom.xml
 .gradle
 .DS_Store
 ita
+.classpath
+.settings/
+.vscode/
