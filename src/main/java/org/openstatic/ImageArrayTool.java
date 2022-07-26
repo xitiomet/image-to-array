@@ -686,9 +686,9 @@ public class ImageArrayTool
         ImageArrayTool.ansiColors.put(new GeoColor(255,255,255), "\u001B[97m");
         
         CommandLine cmd = null;
+        Options options = new Options();
         try
         {
-            Options options = new Options();
             CommandLineParser parser = new DefaultParser();
             boolean rowNumbers = false;
             StringBuffer output = new StringBuffer();
@@ -718,9 +718,7 @@ public class ImageArrayTool
 
             if (cmd.hasOption("?") || cmd.getOptions().length == 0)
             {
-                HelpFormatter formatter = new HelpFormatter();
-                formatter.printHelp( "ita", "Image To Array: A tool for converting images to different forms of code" + System.lineSeparator() + "Project Page - https://openstatic.org/projects/imagetoarray/", options, "");
-                System.exit(0);
+                showHelp(options);
             }
 
             String[] sourceImageParameters = cmd.getOptionValues('i');
@@ -875,10 +873,16 @@ public class ImageArrayTool
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace(System.err);
+            showHelp(options);
         }
         
         
     }
     
+    public static void showHelp(Options options)
+    {
+        HelpFormatter formatter = new HelpFormatter();
+        formatter.printHelp( "ita", "Image To Array: A tool for converting images to different forms of code" + System.lineSeparator() + "Project Page - https://openstatic.org/projects/imagetoarray/", options, "");
+        System.exit(0);
+    }
 }

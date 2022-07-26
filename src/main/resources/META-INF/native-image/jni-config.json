@@ -41,6 +41,22 @@
   "methods":[{"name":"getRGB","parameterTypes":[] }]
 },
 {
+  "name":"java.awt.Component"
+},
+{
+  "name":"java.awt.Font",
+  "fields":[
+    {"name":"name"}, 
+    {"name":"pData"}, 
+    {"name":"size"}, 
+    {"name":"style"}
+  ],
+  "methods":[
+    {"name":"getFont","parameterTypes":["java.lang.String"] }, 
+    {"name":"getFontPeer","parameterTypes":[] }
+  ]
+},
+{
   "name":"java.awt.Insets",
   "fields":[
     {"name":"bottom"}, 
@@ -72,6 +88,15 @@
 },
 {
   "name":"java.awt.color.ICC_ProfileRGB"
+},
+{
+  "name":"java.awt.desktop.UserSessionEvent$Reason",
+  "fields":[
+    {"name":"CONSOLE"}, 
+    {"name":"LOCK"}, 
+    {"name":"REMOTE"}, 
+    {"name":"UNSPECIFIED"}
+  ]
 },
 {
   "name":"java.awt.geom.AffineTransform",
@@ -217,6 +242,10 @@
   ]
 },
 {
+  "name":"sun.awt.Win32GraphicsEnvironment",
+  "methods":[{"name":"dwmCompositionChanged","parameterTypes":["boolean"] }]
+},
+{
   "name":"sun.awt.X11.XErrorHandlerUtil",
   "methods":[{"name":"init","parameterTypes":["long"] }]
 },
@@ -263,6 +292,28 @@
     {"name":"pixelStride"}, 
     {"name":"scanlineStride"}, 
     {"name":"type"}
+  ]
+},
+{
+  "name":"sun.awt.image.SunVolatileImage",
+  "fields":[{"name":"volSurfaceManager"}]
+},
+{
+  "name":"sun.awt.image.VolatileSurfaceManager",
+  "fields":[{"name":"sdCurrent"}]
+},
+{
+  "name":"sun.awt.windows.WDesktopPeer",
+  "methods":[
+    {"name":"systemSleepCallback","parameterTypes":["boolean"] }, 
+    {"name":"userSessionCallback","parameterTypes":["boolean","java.awt.desktop.UserSessionEvent$Reason"] }
+  ]
+},
+{
+  "name":"sun.awt.windows.WToolkit",
+  "methods":[
+    {"name":"displayChanged","parameterTypes":[] }, 
+    {"name":"windowsSettingChange","parameterTypes":[] }
   ]
 },
 {
@@ -471,6 +522,15 @@
     {"name":"curIndex"}, 
     {"name":"numXbands"}, 
     {"name":"region"}
+  ]
+},
+{
+  "name":"sun.java2d.windows.WindowsFlags",
+  "fields":[
+    {"name":"d3dEnabled"}, 
+    {"name":"d3dSet"}, 
+    {"name":"offscreenSharingEnabled"}, 
+    {"name":"setHighDPIAware"}
   ]
 },
 {

@@ -111,6 +111,10 @@
   "methods":[{"name":"<init>","parameterTypes":["sun.security.x509.X500Name"] }]
 },
 {
+  "name":"sun.awt.Win32GraphicsEnvironment",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
   "name":"sun.java2d.loops.OpaqueCopyAnyToArgb",
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
