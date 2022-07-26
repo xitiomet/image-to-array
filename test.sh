@@ -8,4 +8,4 @@
 #java -agentlib:native-image-agent=config-merge-dir=src/main/resources/META-INF/native-image/ -jar target/image-to-array-1.0-SNAPSHOT.jar -i noise.png -o noise.jpeg
 #java -agentlib:native-image-agent=config-merge-dir=src/main/resources/META-INF/native-image/ -jar target/image-to-array-1.0-SNAPSHOT.jar -i cat.png -o cat.gif
 
-java -agentlib:native-image-agent=config-merge-dir=src/main/resources/META-INF/native-image/ -jar target/image-to-array-1.0-SNAPSHOT.jar -i arrows.png -o .ico -o .icns
+java -Djava.awt.headless=true -agentlib:native-image-agent=config-merge-dir=src/main/resources/META-INF/native-image/ -jar target/image-to-array-1.0-SNAPSHOT.jar -i arrows.png -o .ico -o .icns

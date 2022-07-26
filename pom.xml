@@ -3,15 +3,15 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.openstatic</groupId>
   <artifactId>image-to-array</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <version>1.4</version>
   <packaging>jar</packaging>
   <name>Image To Array</name>
   <url>http://openstatic.org/imagetoarray/</url>
   <properties>
     <mainClass>org.openstatic.ImageArrayTool</mainClass>
-    <maven.compiler.source>1.8</maven.compiler.source>
-    <maven.compiler.target>1.8</maven.compiler.target>
-    <graalvm.version>21.2.0</graalvm.version>
+    <maven.compiler.source>11</maven.compiler.source>
+    <maven.compiler.target>11</maven.compiler.target>
+    <graalvm.version>22.1.0</graalvm.version>
   </properties>
   <repositories>
     <repository>
@@ -75,7 +75,7 @@
         <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-shade-plugin</artifactId>
-            <version>2.4.3</version>
+            <version>3.3.0</version>
             <configuration>
               <mainClass>${mainClass}</mainClass>
               <goalPrefix>shade</goalPrefix>
@@ -110,7 +110,7 @@
         <plugin>
             <groupId>org.graalvm.nativeimage</groupId>
             <artifactId>native-image-maven-plugin</artifactId>
-            <version>${graalvm.version}</version>
+            <version>21.2.0</version>
             <executions>
                 <execution>
                     <goals>
@@ -201,6 +201,9 @@
                             <minVersion>1.8.0</minVersion>
                             <initialHeapSize>512</initialHeapSize>
                             <maxHeapSize>1024</maxHeapSize>
+                            <opts>
+                              <opt>-Djava.awt.headless=true</opt>
+                            </opts>
                         </jre>
                         <versionInfo>
                             <fileVersion>1.0.0.0</fileVersion>
