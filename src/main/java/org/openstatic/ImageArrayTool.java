@@ -7,6 +7,7 @@ import java.awt.geom.AffineTransform;
 import java.awt.Graphics2D;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.BufferedInputStream;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -17,6 +18,8 @@ import java.io.ByteArrayInputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import javax.imageio.ImageIO;
 import java.awt.Color;
@@ -40,6 +43,10 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.cli.*;
 import org.apache.commons.io.FilenameUtils;
+
+import net.ifok.image.image4j.codec.ico.ICOEncoder;
+import com.github.gino0631.common.io.IoStreams;
+import com.github.gino0631.icns.*;
 
 public class ImageArrayTool
 {
@@ -606,6 +613,54 @@ public class ImageArrayTool
         System.err.println(text);
     }
 
+    public static InputStream readablePNG(String size, BufferedImage img) throws IOException
+    {
+        ByteArrayOutputStream bArrayOutputStream = new ByteArrayOutputStream();
+        ImageIO.write(resizeImage(size, img), "png", bArrayOutputStream);
+        return new ByteArrayInputStream(bArrayOutputStream.toByteArray());
+    }
+
+    public static void outputImage(File file, String type)
+    {
+        try
+        {
+            if (type.equals("ico"))
+            {
+                ArrayList<BufferedImage> icons = new ArrayList<BufferedImage>();
+                icons.add(resizeImage("16x16",ImageArrayTool.sourceImage));
+                icons.add(resizeImage("32x32",ImageArrayTool.sourceImage));
+                icons.add(resizeImage("48x48",ImageArrayTool.sourceImage));
+                icons.add(resizeImage("64x64",ImageArrayTool.sourceImage));
+                icons.add(resizeImage("128x128",ImageArrayTool.sourceImage));
+                int[] bpps = new int[icons.size()];
+                for(int i = 0; i<icons.size(); i++) bpps[i] = 32;
+                ICOEncoder.write(icons, bpps, file);
+            } if (type.equals("icns")) {
+                try (IcnsBuilder builder = IcnsBuilder.getInstance())
+                {
+                    builder.add(IcnsType.ICNS_16x16_JPEG_PNG_IMAGE, readablePNG("16x16", ImageArrayTool.sourceImage));
+                    builder.add(IcnsType.ICNS_32x32_JPEG_PNG_IMAGE, readablePNG("32x32", ImageArrayTool.sourceImage));
+                    builder.add(IcnsType.ICNS_64x64_JPEG_PNG_IMAGE, readablePNG("64x64", ImageArrayTool.sourceImage));
+                    builder.add(IcnsType.ICNS_128x128_JPEG_PNG_IMAGE, readablePNG("128x128", ImageArrayTool.sourceImage));
+                    builder.add(IcnsType.ICNS_256x256_JPEG_PNG_IMAGE, readablePNG("256x256", ImageArrayTool.sourceImage));
+                    builder.add(IcnsType.ICNS_512x512_JPEG_PNG_IMAGE, readablePNG("512x512", ImageArrayTool.sourceImage));
+                    IcnsIcons builtIcons = builder.build();        
+                    Path output = file.toPath();
+                    OutputStream os = Files.newOutputStream(output);
+                    builtIcons.writeTo(os);
+                    debugMessage("Wrote (" + type + "): " + file.toString());
+                } catch (Exception e) {
+                    e.printStackTrace(System.err);
+                }
+            } else {
+                ImageIO.write(ImageArrayTool.sourceImage, type, file);
+                debugMessage("Wrote (" + type + "): " + file.toString());
+            }
+        } catch (IOException e) {
+            e.printStackTrace(System.err);
+        }
+    }
+
     public static void main(String[] args) throws IOException 
     {
         ImageArrayTool.ansiColors = new LinkedHashMap();
@@ -647,7 +702,7 @@ public class ImageArrayTool
             options.addOption(new Option("p", "input-palette", true, "Input image file for color palette filter"));
             options.addOption(new Option("s", "scale", true, "Scale image (ex: 320x240 or 0.5)"));
 
-            Option outputOption = Option.builder("o").desc("Output a file instead of STDOUT (txt,html,md,png,bmp,gif,jpg,webp)").hasArgs().longOpt("output").valueSeparator(' ').build();
+            Option outputOption = Option.builder("o").desc("Output a file instead of STDOUT (txt,html,md,png,bmp,gif,jpg,webp,ico,icns)").hasArgs().longOpt("output").valueSeparator(' ').build();
             options.addOption(outputOption);
             
             options.addOption(new Option("c", "output-array", true, "Add a RGB C/C++ struct array to the output"));
@@ -781,15 +836,20 @@ public class ImageArrayTool
                                 filename = ImageArrayTool.sourceImageBaseName + outputFilenames[0];
                             }
                             String ext = filenameExtension(filename).toLowerCase();
-                            ImageIO.write(ImageArrayTool.sourceImage, ext, new File(filename));
-                            debugMessage("Wrote (" + ext + "): " + filename);
+                            outputImage(new File(filename), ext);
                         } else {
-                            if (i < outputFilenames.length)
+                            for (int n = 0; n < outputFilenames.length; n++)
                             {
-                                String filename = outputFilenames[i];
-                                String ext = filenameExtension(filename).toLowerCase();
-                                ImageIO.write(ImageArrayTool.sourceImage, ext, new File(filename));
-                                debugMessage("Wrote (" + ext + "): " + filename);
+                                String filename = outputFilenames[n];
+                                if (filename.startsWith("."))
+                                {
+                                    filename = ImageArrayTool.sourceImageBaseName + filename;
+                                    String ext = filenameExtension(filename).toLowerCase();
+                                    outputImage(new File(filename), ext);
+                                } else if (n == i) {
+                                    String ext = filenameExtension(filename).toLowerCase();
+                                    outputImage(new File(filename), ext);
+                                }
                             }
                         }
                     }

@@ -31,7 +31,7 @@ Project Page - https://openstatic.org/projects/imagetoarray/
  -i,--input <arg>             Input files or URLs
                               (png,jpg,md,html,bmp,gif,txt,webp)
  -o,--output <arg>            Output a file instead of STDOUT
-                              (txt,html,md,png,bmp,gif,jpg,webp)
+                              (txt,html,md,png,bmp,gif,jpg,webp,ico,icns)
  -p,--input-palette <arg>     Input image file for color palette filter
  -r,--row-numbers             Include row numbers on ASCII art
  -s,--scale <arg>             Scale image (ex: 320x240 or 0.5)
@@ -81,3 +81,15 @@ void hearts()
 }
 
 ```
+
+### Building Icons ###
+
+ita can also be used to generate icon sets for both MacOs and Windows. You can also shortcut output filenames by only providing the extension of the files you wish to build.
+
+```bash
+$ ita -i arrows.png -o .ico -o .icns
+Input Files: [arrows.png]
+Wrote (ico): arrows.ico
+Wrote (icns): arrows.icns
+```
+

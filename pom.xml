@@ -44,6 +44,18 @@
         <artifactId>commons-io</artifactId>
         <version>2.8.0</version>
     </dependency>
+    <!-- https://mvnrepository.com/artifact/net.ifok.image/image4j -->
+    <dependency>
+        <groupId>net.ifok.image</groupId>
+        <artifactId>image4j</artifactId>
+        <version>0.7.2</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/com.github.gino0631/icns-core -->
+    <dependency>
+        <groupId>com.github.gino0631</groupId>
+        <artifactId>icns-core</artifactId>
+        <version>1.1</version>
+    </dependency>
   </dependencies>
   <reporting>
     <plugins>
@@ -117,6 +129,7 @@
                     --enable-https
                     --enable-http
                     -H:+AllowIncompleteClasspath
+                    -Djava.awt.headless=true
                 </buildArgs>
             </configuration>
        </plugin>
