@@ -786,15 +786,17 @@ public class ImageArrayTool
                         String asciiOptions = cmd.getOptionValue('a',"");
                         if (asciiOptions.contains("auto_scale"))
                         {
+                            int term_h = 24;
+                            int term_w = 40;
                             debugMessage("Auto-Scaling for ASCII ART");
                             float w = (float) ImageArrayTool.sourceImage.getWidth();
                             float h = (float) ImageArrayTool.sourceImage.getHeight();
                             BufferedImage scaledSourceImage = ImageArrayTool.sourceImage;
                             if (h > w)
                             {   // We're going to get cut off on height
-                                if (h > 24)
+                                if (h > term_h)
                                 {
-                                    float new_height = 24;
+                                    float new_height = term_h;
                                     float new_width = w * (new_height / h);
                                     String new_dim = String.valueOf((int) new_width) + "x" + String.valueOf((int) new_height);
                                     debugMessage(" * Terminal Height Exceeded - New size = " + new_dim);
@@ -802,9 +804,9 @@ public class ImageArrayTool
                                 }
                             } else {
                                 // We're going to get cut off on width
-                                if (w > 80)
+                                if (w > term_w)
                                 {
-                                    float new_width = 80;
+                                    float new_width = term_w;
                                     float new_height = h * (new_width / w);
                                     String new_dim = String.valueOf((int) new_width) + "x" + String.valueOf((int) new_height);
                                     debugMessage(" * Terminal Width Exceeded - New size = " + new_dim);
