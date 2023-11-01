@@ -710,7 +710,7 @@ public class ImageArrayTool
             options.addOption(new Option("c", "output-rgb-array", true, "Add a RGB C/C++ struct array to the output"));
             options.addOption(new Option("x", "output-rgb-2d-array", true, "Add a RGB two dimensional C/C++ struct array to the output"));
             options.addOption(new Option("e", "output-base64", true, "Add a base64 string to the output (argument is format JPEG,GIF,PNG,WEBP)"));
-            Option asciiOption = new Option("a", "output-ascii", true, "Add a 24-bit ASCII art image to the output. Optional arg is \"auto_scale\" which will reduce the image to fit in an 80x24 terminal");
+            Option asciiOption = new Option("a", "output-ascii", true, "Add a 24-bit ASCII art image to the output. Optional arg is \"no_scale\" which will not reduce the image to standard terminal size.");
             asciiOption.setOptionalArg(true);
             options.addOption(asciiOption);
             options.addOption(new Option("r", "row-numbers", false, "Include row numbers on ASCII art"));
@@ -784,8 +784,10 @@ public class ImageArrayTool
                     if (cmd.hasOption("a"))
                     {
                         String asciiOptions = cmd.getOptionValue('a',"");
-                        if (asciiOptions.contains("auto_scale"))
+                        if (asciiOptions.contains("no_scale"))
                         {
+                            output.append(getAsciiArt(sourceImageArray, rowNumbers));
+                        } else {
                             int term_h = 24;
                             int term_w = 40;
                             debugMessage("Auto-Scaling for ASCII ART");
@@ -815,8 +817,6 @@ public class ImageArrayTool
                             }
                             GeoColor[][] sourceImageArrayScaled = convertTo2DArray(scaledSourceImage);
                             output.append(getAsciiArt(sourceImageArrayScaled, rowNumbers));
-                        } else {
-                            output.append(getAsciiArt(sourceImageArray, rowNumbers));
                         }
                     }
                     
