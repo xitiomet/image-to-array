@@ -97,6 +97,7 @@
         <plugin>
             <groupId>com.googlecode.mavennatives</groupId>
             <artifactId>maven-nativedependencies-plugin</artifactId>
+            <version>0.0.7</version>
             <executions>
                 <execution>
                     <id>unpacknatives</id>
@@ -197,7 +198,7 @@
                         </classPath>
                         <icon>src/main/resources/windows.ico</icon>
                         <jre>
-                            <path>jre</path>
+                            <path>%PATH%;%JAVA_HOME%;jre</path>
                             <minVersion>1.8.0</minVersion>
                             <initialHeapSize>512</initialHeapSize>
                             <maxHeapSize>1024</maxHeapSize>

@@ -710,7 +710,9 @@ public class ImageArrayTool
             options.addOption(new Option("c", "output-rgb-array", true, "Add a RGB C/C++ struct array to the output"));
             options.addOption(new Option("x", "output-rgb-2d-array", true, "Add a RGB two dimensional C/C++ struct array to the output"));
             options.addOption(new Option("e", "output-base64", true, "Add a base64 string to the output (argument is format JPEG,GIF,PNG,WEBP)"));
-            options.addOption(new Option("a", "output-ascii", false, "Add a 24-bit ASCII art image to the output"));
+            Option asciiOption = new Option("a", "output-ascii", true, "Add a 24-bit ASCII art image to the output. Optional arg is \"auto_scale\" which will reduce the image to fit in an 80x24 terminal");
+            asciiOption.setOptionalArg(true);
+            options.addOption(asciiOption);
             options.addOption(new Option("r", "row-numbers", false, "Include row numbers on ASCII art"));
             options.addOption(new Option("b", "replace-urls", false, "Replace all image urls in a text file with base64 images"));
             options.addOption(new Option("t", "replace-tags", false, "Replace all image tags in an html file with base64 images"));
@@ -781,7 +783,39 @@ public class ImageArrayTool
                     
                     if (cmd.hasOption("a"))
                     {
-                        output.append(getAsciiArt(sourceImageArray, rowNumbers));
+                        String asciiOptions = cmd.getOptionValue('a',"");
+                        if (asciiOptions.contains("auto_scale"))
+                        {
+                            debugMessage("Auto-Scaling for ASCII ART");
+                            float w = (float) ImageArrayTool.sourceImage.getWidth();
+                            float h = (float) ImageArrayTool.sourceImage.getHeight();
+                            BufferedImage scaledSourceImage = ImageArrayTool.sourceImage;
+                            if (h > w)
+                            {   // We're going to get cut off on height
+                                if (h > 24)
+                                {
+                                    float new_height = 24;
+                                    float new_width = w * (new_height / h);
+                                    String new_dim = String.valueOf((int) new_width) + "x" + String.valueOf((int) new_height);
+                                    debugMessage(" * Terminal Height Exceeded - New size = " + new_dim);
+                                    scaledSourceImage = resizeImage(new_dim, ImageArrayTool.sourceImage);
+                                }
+                            } else {
+                                // We're going to get cut off on width
+                                if (w > 80)
+                                {
+                                    float new_width = 80;
+                                    float new_height = h * (new_width / w);
+                                    String new_dim = String.valueOf((int) new_width) + "x" + String.valueOf((int) new_height);
+                                    debugMessage(" * Terminal Width Exceeded - New size = " + new_dim);
+                                    scaledSourceImage = resizeImage(new_dim, ImageArrayTool.sourceImage);
+                                }
+                            }
+                            GeoColor[][] sourceImageArrayScaled = convertTo2DArray(scaledSourceImage);
+                            output.append(getAsciiArt(sourceImageArrayScaled, rowNumbers));
+                        } else {
+                            output.append(getAsciiArt(sourceImageArray, rowNumbers));
+                        }
                     }
                     
                     if (cmd.hasOption("d"))
