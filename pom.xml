@@ -12,6 +12,7 @@
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
     <graalvm.version>22.1.0</graalvm.version>
+    <skipNative>false</skipNative>
   </properties>
   <repositories>
     <repository>
@@ -119,7 +120,7 @@
                 </execution>
             </executions>
             <configuration>
-                <skip>false</skip>
+                <skip>${skipNative}</skip>
                 <imageName>ita</imageName>
                 <mainClass>${mainClass}</mainClass>
                 <buildArgs>
@@ -150,6 +151,7 @@
                         <goal>jdeb</goal>
                     </goals>
                     <configuration>
+                        <skip>${skipNative}</skip>
                         <verbose>true</verbose>
                         <snapshotExpand>true</snapshotExpand>
                         <!-- expand "SNAPSHOT" to what is in the "USER" env variable -->

@@ -275,18 +275,30 @@ public class ImageArrayTool
     public static String getAsciiArt(GeoColor[][] ary, boolean lineNumbers)
     {
         StringBuffer sb = new StringBuffer();
-        for (int row = 0; row < ary.length; row++)
+        int i = 0;
+        for (int row = 0; row < ary.length ; row+=2)
         {
             if (lineNumbers)
-                sb.append( "\u001B[1m\u001B[97m" + String.format("%03d" ,row) + ":\u001B[0m ");
+                sb.append( "\u001B[1m\u001B[97m" + String.format("%03d", i) + ":\u001B[0m ");
             for (int col = 0; col < ary[row].length; col++)
             {
-                sb.append("\u001B[38;2;" + String.valueOf(ary[row][col].getRed()) + ";" + String.valueOf(ary[row][col].getGreen()) + ";" + String.valueOf(ary[row][col].getBlue()) + "m\u2588\u2588");
+                int nrow = row+1;
+                String fg_red = (nrow < ary.length) ? String.valueOf(ary[row+1][col].getRed()) : "0";
+                String fg_green = (nrow < ary.length) ? String.valueOf(ary[row+1][col].getGreen()) : "0";
+                String fg_blue = (nrow < ary.length) ? String.valueOf(ary[row+1][col].getBlue()) : "0";
+                
+                String bg_red = (row < ary.length) ? String.valueOf(ary[row][col].getRed()) : "0";
+                String bg_green = (row < ary.length) ? String.valueOf(ary[row][col].getGreen()) : "0";
+                String bg_blue = (row < ary.length) ? String.valueOf(ary[row][col].getBlue()) : "0";
+
+                sb.append(  "\u001B[48;2;" + bg_red + ";" + bg_green + ";" + bg_blue + "m" +
+                            "\u001B[38;2;" + fg_red + ";" + fg_green + ";" + fg_blue + "m\u2584\u001B[0m");
                 //System.out.print(getAnsiCodeFromRGB(ary[row][col]) + "\u2588\u2588");
             }
             sb.append("\n");
+            i++;
         }
-        sb.append("\u001B[0m");
+        //sb.append("\u001B[0m");
         return sb.toString();
     }
     
@@ -710,10 +722,10 @@ public class ImageArrayTool
             options.addOption(new Option("c", "output-rgb-array", true, "Add a RGB C/C++ struct array to the output"));
             options.addOption(new Option("x", "output-rgb-2d-array", true, "Add a RGB two dimensional C/C++ struct array to the output"));
             options.addOption(new Option("e", "output-base64", true, "Add a base64 string to the output (argument is format JPEG,GIF,PNG,WEBP)"));
-            Option asciiOption = new Option("a", "output-ascii", true, "Add a 24-bit ASCII art image to the output. Optional arg is \"no_scale\" which will not reduce the image to standard terminal size.");
+            Option asciiOption = new Option("a", "output-ascii", true, "Add a 24-bit ASCII art image to the output. Optional args are \"no_scale\" which will not reduce the image to standard terminal size, and \"row_numbers\" which will add row numbers to each line.");
             asciiOption.setOptionalArg(true);
             options.addOption(asciiOption);
-            options.addOption(new Option("r", "row-numbers", false, "Include row numbers on ASCII art"));
+            //options.addOption(new Option("r", "row-numbers", false, "Include row numbers on ASCII art"));
             options.addOption(new Option("b", "replace-urls", false, "Replace all image urls in a text file with base64 images"));
             options.addOption(new Option("t", "replace-tags", false, "Replace all image tags in an html file with base64 images"));
 
@@ -758,11 +770,6 @@ public class ImageArrayTool
                     output.append(textBody);
                 }
 
-                if (cmd.hasOption("r"))
-                {
-                    rowNumbers = true;
-                }
-
                 if (ImageArrayTool.sourceImage != null)
                 {
                     if (cmd.hasOption("p") && ImageArrayTool.sourceImage != null)
@@ -784,12 +791,13 @@ public class ImageArrayTool
                     if (cmd.hasOption("a"))
                     {
                         String asciiOptions = cmd.getOptionValue('a',"");
-                        if (asciiOptions.contains("no_scale"))
+                        rowNumbers = asciiOptions.contains("row_numbers");
+                        if (asciiOptions.contains("no_scale") || cmd.hasOption("s"))
                         {
                             output.append(getAsciiArt(sourceImageArray, rowNumbers));
                         } else {
-                            int term_h = 24;
-                            int term_w = 40;
+                            int term_h = 48;
+                            int term_w = 72;
                             debugMessage("Auto-Scaling for ASCII ART");
                             float w = (float) ImageArrayTool.sourceImage.getWidth();
                             float h = (float) ImageArrayTool.sourceImage.getHeight();
