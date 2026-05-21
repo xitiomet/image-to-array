@@ -399,6 +399,16 @@
       ]
     },
     {
+      "type": "java.awt.GraphicsEnvironment",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "isHeadless",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
       "type": "java.awt.Insets",
       "jniAccessible": true,
       "fields": [
@@ -442,6 +452,17 @@
         },
         {
           "name": "y"
+        }
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "int",
+            "int",
+            "int",
+            "int"
+          ]
         }
       ]
     },
@@ -800,6 +821,18 @@
     },
     {
       "type": "java.lang.String[]"
+    },
+    {
+      "type": "java.lang.System",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "load",
+          "parameterTypes": [
+            "java.lang.String"
+          ]
+        }
+      ]
     },
     {
       "type": "java.security.AlgorithmParametersSpi"
@@ -1976,6 +2009,12 @@
         {
           "name": "<init>",
           "parameterTypes": []
+        },
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.security.SecureRandomParameters"
+          ]
         }
       ]
     },
