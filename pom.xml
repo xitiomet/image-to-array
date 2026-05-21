@@ -13,6 +13,9 @@
     <maven.compiler.target>11</maven.compiler.target>
     <graalvm.version>22.1.0</graalvm.version>
     <skipNative>false</skipNative>
+    <!-- Extra args appended to native-image <buildArgs>. Profiles can override this
+         (e.g. windows-native-resources injects a compiled .res via the linker). -->
+    <extraNativeBuildArgs></extraNativeBuildArgs>
   </properties>
   <repositories>
     <repository>
@@ -119,7 +122,7 @@
                 <configuration>
                     <includeGroupIds>org.sejda.imageio</includeGroupIds>
                     <includeArtifactIds>webp-imageio</includeArtifactIds>
-                    <includes>native/linux/64/*.so</includes>
+                    <includes>native/linux/64/*.so,native/win/32/*.dll,native/win/64/*.dll</includes>
                     <outputDirectory>${project.build.directory}/natives</outputDirectory>
                     <stripClassifier>true</stripClassifier>
                 </configuration>
@@ -149,6 +152,7 @@
                     --enable-http
                     -H:+AllowIncompleteClasspath
                     -Djava.awt.headless=true
+                    ${extraNativeBuildArgs}
                 </buildArgs>
             </configuration>
        </plugin>
@@ -159,109 +163,163 @@
             <configuration>
             </configuration>
        </plugin>
-       <plugin>
+    </plugins>
+  </build>
+  <profiles>
+    <profile>
+      <id>windows-native-resources</id>
+      <activation>
+        <os>
+          <family>windows</family>
+        </os>
+      </activation>
+      <properties>
+        <!-- Tells native-image to embed the compiled Win32 resource (icon + VERSIONINFO)
+             into ita.exe by passing the .res file to the MSVC linker. -->
+        <extraNativeBuildArgs>-H:NativeLinkerOption=${project.build.directory}/ita.res</extraNativeBuildArgs>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <version>3.1.0</version>
+            <executions>
+              <execution>
+                <id>compile-windows-resources</id>
+                <!-- Must run before native-image (package phase). -->
+                <phase>prepare-package</phase>
+                <goals>
+                  <goal>exec</goal>
+                </goals>
+                <configuration>
+                  <executable>rc.exe</executable>
+                  <arguments>
+                    <argument>/nologo</argument>
+                    <!-- Let rc.exe find windows.ico referenced from ita.rc. -->
+                    <argument>/I</argument>
+                    <argument>${basedir}/src/main/resources</argument>
+                    <argument>/fo</argument>
+                    <argument>${project.build.directory}/ita.res</argument>
+                    <argument>${basedir}/src/win/ita.rc</argument>
+                  </arguments>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>linux-deb</id>
+      <activation>
+        <os>
+          <family>unix</family>
+          <name>linux</name>
+        </os>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
             <artifactId>jdeb</artifactId>
             <groupId>org.vafer</groupId>
             <version>1.8</version>
             <executions>
-                <execution>
-                    <phase>package</phase>
-                    <goals>
-                        <goal>jdeb</goal>
-                    </goals>
-                    <configuration>
-                        <skip>${skipNative}</skip>
-                        <verbose>true</verbose>
-                        <snapshotExpand>true</snapshotExpand>
-                        <!-- expand "SNAPSHOT" to what is in the "USER" env variable -->
-                        <snapshotEnv>USER</snapshotEnv>
-                        <controlDir>${basedir}/src/deb/control</controlDir>
-                        <deb>${project.build.directory}/${project.artifactId}-${project.version}.deb</deb>
-                        <dataSet>
-                            <data>
-                              <src>${project.build.directory}/ita</src>
-                              <type>file</type>
-                              <mapper>
-                                <type>perm</type>
-                                <prefix>/usr/bin</prefix>
-                                <user>loader</user>
-                                <group>loader</group>
-                                <filemode>755</filemode>
-                              </mapper>
-                            </data>
-                            <data>
-                              <type>directory</type>
-                              <src>${project.build.directory}</src>
-                              <includes>*.so</includes>
-                              <mapper>
-                                <type>perm</type>
-                                <prefix>/usr/lib</prefix>
-                                <filemode>755</filemode>
-                              </mapper>
-                            </data>
-                            <data>
-                                <src>${project.build.directory}/natives/native/linux/64/libwebp-imageio.so</src>
-                                <type>file</type>
-                                <mapper>
-                                    <type>perm</type>
-                                    <prefix>/usr/lib</prefix>
-                                    <user>root</user>
-                                    <group>root</group>
-                                    <filemode>755</filemode>
-                                </mapper>
-                            </data>
-                        </dataSet>
-                    </configuration>
-                </execution>
+              <execution>
+                <phase>package</phase>
+                <goals>
+                  <goal>jdeb</goal>
+                </goals>
+                <configuration>
+                  <skip>${skipNative}</skip>
+                  <verbose>true</verbose>
+                  <snapshotExpand>true</snapshotExpand>
+                  <!-- expand "SNAPSHOT" to what is in the "USER" env variable -->
+                  <snapshotEnv>USER</snapshotEnv>
+                  <controlDir>${basedir}/src/deb/control</controlDir>
+                  <deb>${project.build.directory}/${project.artifactId}-${project.version}.deb</deb>
+                  <dataSet>
+                    <data>
+                      <src>${project.build.directory}/ita</src>
+                      <type>file</type>
+                      <mapper>
+                        <type>perm</type>
+                        <prefix>/usr/bin</prefix>
+                        <user>loader</user>
+                        <group>loader</group>
+                        <filemode>755</filemode>
+                      </mapper>
+                    </data>
+                    <data>
+                      <type>directory</type>
+                      <src>${project.build.directory}</src>
+                      <includes>*.so</includes>
+                      <mapper>
+                        <type>perm</type>
+                        <prefix>/usr/lib</prefix>
+                        <filemode>755</filemode>
+                      </mapper>
+                    </data>
+                    <data>
+                      <src>${project.build.directory}/natives/native/linux/64/libwebp-imageio.so</src>
+                      <type>file</type>
+                      <mapper>
+                        <type>perm</type>
+                        <prefix>/usr/lib</prefix>
+                        <user>root</user>
+                        <group>root</group>
+                        <filemode>755</filemode>
+                      </mapper>
+                    </data>
+                  </dataSet>
+                </configuration>
+              </execution>
             </executions>
-       </plugin>
-       <plugin>
-            <groupId>com.akathist.maven.plugins.launch4j</groupId>
-            <artifactId>launch4j-maven-plugin</artifactId>
-            <version>2.0.1</version>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>windows-installer</id>
+      <activation>
+        <os>
+          <family>windows</family>
+        </os>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.digitalmediaserver</groupId>
+            <artifactId>nsis-maven-plugin</artifactId>
+            <version>1.0.2</version>
+            <configuration>
+              <makensisExecutable>C:\Program Files (x86)\NSIS\makensis.exe</makensisExecutable>
+              <makensisExecutableLinux>/usr/bin/makensis</makensisExecutableLinux>
+              <makensisExecutableMacOS></makensisExecutableMacOS>
+              <compression>lzma</compression>
+              <compressionIsFinal>true</compressionIsFinal>
+              <compressionDictSize>64</compressionDictSize>
+              <defines>
+                <PROJECT_NAME_SHORT>ita</PROJECT_NAME_SHORT>
+                <PROJECT_NAME_CAMEL>${project.name.camel}</PROJECT_NAME_CAMEL>
+              </defines>
+            </configuration>
             <executions>
-                <execution>
-                    <id>l4j-gui</id>
-                    <phase>package</phase>
-                    <goals>
-                        <goal>launch4j</goal>
-                    </goals>
-                    <configuration>
-                        <headerType>console</headerType>
-                        <outfile>target/ita-l4j.exe</outfile>
-                        <jar>target/${project.artifactId}-${project.version}.jar</jar>
-                        <!-- if <dontWrapJar>true</dontWrapJar> change to this conf <jar>${project.artifactId}-${project.version}.jar</jar> -->
-                        <dontWrapJar>false</dontWrapJar>
-                        <errTitle>Error in launch4j plugin</errTitle>
-                        <classPath>
-                            <mainClass>${mainClass}</mainClass>
-                        </classPath>
-                        <icon>src/main/resources/windows.ico</icon>
-                        <jre>
-                            <path>%PATH%;%JAVA_HOME%;jre</path>
-                            <minVersion>1.8.0</minVersion>
-                            <initialHeapSize>512</initialHeapSize>
-                            <maxHeapSize>1024</maxHeapSize>
-                            <opts>
-                              <opt>-Djava.awt.headless=true</opt>
-                            </opts>
-                        </jre>
-                        <versionInfo>
-                            <fileVersion>1.0.0.0</fileVersion>
-                            <txtFileVersion>1.0.0.0</txtFileVersion>
-                            <fileDescription>ImageToArray</fileDescription>
-                            <copyright>Copyright (c) 2019</copyright>
-                            <companyName>openstatic.org</companyName>
-                            <productVersion>1.0.0.0</productVersion>
-                            <txtProductVersion>${project.version}</txtProductVersion>
-                            <productName>ImageToArray</productName>
-                            <internalName>ImageToArray</internalName>
-                            <originalFilename>ita-l4j.exe</originalFilename>
-                        </versionInfo>
-                    </configuration>
-                </execution>
+              <execution>
+                <id>build-windows-installer</id>
+                <configuration>
+                  <scriptFile>${basedir}/src/nsis/ita.nsi</scriptFile>
+                  <outputFile>ita-setup.exe</outputFile>
+                </configuration>
+                <goals>
+                  <goal>generate-headerfile</goal>
+                  <goal>make</goal>
+                </goals>
+              </execution>
             </executions>
-        </plugin>
-    </plugins>
-  </build>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>

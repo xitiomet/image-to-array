@@ -1,0 +1,37 @@
+/* Windows resource script for the native-image build of ita.exe
+ * Compiled by rc.exe (or windres) into ita.res and passed to the
+ * native-image linker via -H:NativeLinkerOption.
+ */
+
+#include <winver.h>
+
+/* Icon. ID 1 is conventional for the app icon shown by Explorer.
+ * Path is resolved relative to the rc.exe -I include dir we set in the pom. */
+1 ICON "windows.ico"
+
+/* Version information. Update FILEVERSION / PRODUCTVERSION as needed. */
+1 VERSIONINFO
+FILEVERSION     1,4,0,0
+PRODUCTVERSION  1,4,0,0
+FILEOS          VOS__WINDOWS32
+FILETYPE        VFT_APP
+{
+    BLOCK "StringFileInfo"
+    {
+        BLOCK "040904b0"
+        {
+            VALUE "CompanyName",      "openstatic.org"
+            VALUE "FileDescription",  "ImageToArray"
+            VALUE "FileVersion",      "1.4.0.0"
+            VALUE "InternalName",     "ita"
+            VALUE "LegalCopyright",   "Copyright (c) openstatic.org"
+            VALUE "OriginalFilename", "ita.exe"
+            VALUE "ProductName",      "ImageToArray"
+            VALUE "ProductVersion",   "1.4.0.0"
+        }
+    }
+    BLOCK "VarFileInfo"
+    {
+        VALUE "Translation", 0x0409, 0x04B0
+    }
+}
