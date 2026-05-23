@@ -192,7 +192,7 @@ FunctionEnd
 
 Section "image-to-array" Main
 SectionIn RO
-  WriteRegStr HKLM "${REG_UNINSTALL}" "DisplayName" "JSON Roller"
+  WriteRegStr HKLM "${REG_UNINSTALL}" "DisplayName" "Image To Array"
   WriteRegStr HKLM "${REG_UNINSTALL}" "DisplayIcon" "$INSTDIR\Uninstall.exe"
   WriteRegStr HKLM "${REG_UNINSTALL}" "DisplayVersion" "1.0"
   WriteRegStr HKLM "${REG_UNINSTALL}" "Publisher" "openstatic.org"
