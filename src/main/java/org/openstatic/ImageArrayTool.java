@@ -3,6 +3,7 @@ package org.openstatic;
 import java.awt.image.BufferedImage;
 import java.awt.image.AffineTransformOp;
 import java.awt.geom.AffineTransform;
+import java.awt.Graphics2D;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -603,6 +604,30 @@ public class ImageArrayTool
         System.err.println(text);
     }
 
+    /**
+     * Converts an image that ImageIO decoded into a {@code TYPE_CUSTOM} raster
+     * (for example 16-bit-per-channel PNGs or unusual color spaces) into a
+     * standard 8-bit image so the rest of the pipeline can process it. Images
+     * that are already a standard type are returned unchanged.
+     */
+    public static BufferedImage normalizeImage(BufferedImage image)
+    {
+        if (image == null || image.getType() != BufferedImage.TYPE_CUSTOM)
+            return image;
+        int targetType = image.getColorModel().hasAlpha()
+            ? BufferedImage.TYPE_INT_ARGB
+            : BufferedImage.TYPE_INT_RGB;
+        BufferedImage converted = new BufferedImage(image.getWidth(), image.getHeight(), targetType);
+        Graphics2D g = converted.createGraphics();
+        try
+        {
+            g.drawImage(image, 0, 0, null);
+        } finally {
+            g.dispose();
+        }
+        return converted;
+    }
+
     public static InputStream readablePNG(String size, BufferedImage img) throws IOException
     {
         ByteArrayOutputStream bArrayOutputStream = new ByteArrayOutputStream();
@@ -872,6 +897,7 @@ public class ImageArrayTool
 
             String[] sourceImageParameters = cmd.getOptionValues('i');
             debugMessage("Input Files: " + Arrays.asList(sourceImageParameters).toString());
+            boolean inputFailure = false;
             for(int i = 0; i < sourceImageParameters.length; i++)
             {
                 String sourceImageParameter = sourceImageParameters[i];
@@ -885,13 +911,21 @@ public class ImageArrayTool
                     ImageArrayTool.sourceImage = ImageIO.read(bais);
                     if (ImageArrayTool.sourceImage != null)
                     {
-                        if (ImageArrayTool.sourceImage.getType() == BufferedImage.TYPE_CUSTOM)
-                        {
-                            ImageArrayTool.sourceImage = null;
-                        }
+                        // ImageIO decodes some inputs (e.g. 16-bit-per-channel PNGs)
+                        // into a TYPE_CUSTOM raster. Down-convert to a standard 8-bit
+                        // image instead of discarding it, which previously caused ita
+                        // to silently produce no output.
+                        ImageArrayTool.sourceImage = normalizeImage(ImageArrayTool.sourceImage);
                     }
                 } catch (Exception e) {
                     ImageArrayTool.sourceImage = null;
+                    debugMessage("Failed to read image: " + sourceImageParameter + " (" + e.getMessage() + ")");
+                }
+
+                if (ImageArrayTool.sourceImage == null && !cmd.hasOption("t") && !cmd.hasOption("b"))
+                {
+                    debugMessage("Error: Could not load '" + sourceImageParameter + "' as an image.");
+                    inputFailure = true;
                 }
                 
                 if (cmd.hasOption("t") || cmd.hasOption("b"))
@@ -1046,8 +1080,17 @@ public class ImageArrayTool
                     System.out.println(output.toString());
                 }
             }
-        } catch (Exception e) {
+
+            if (inputFailure)
+            {
+                System.exit(1);
+            }
+        } catch (ParseException pe) {
             showHelp(options);
+        } catch (Exception e) {
+            System.err.println("ita: error: " + e.getMessage());
+            e.printStackTrace(System.err);
+            System.exit(1);
         }
         
         
