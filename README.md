@@ -8,7 +8,7 @@ Simple Command line tool for converting images to data arrays. I made this to us
 As time has gone on features now include
   * Converting images to base64 image strings and html
   * Resizing images
-  * Finding all image urls in a text/html document and replacing them with base64 strings (also works with markdown!)
+  * Making html or markdown documents self contained by inlining every image, stylesheet, script, font, icon and media file as base64 (document type is auto-detected)
   * Output 24-bit ASCII Art
   * Replace color palette with nearest colors from another image
   * Output 2 dimensional or 1 dimensional array for C/C++/Java
@@ -23,8 +23,12 @@ Project Page - https://openstatic.org/projects/imagetoarray/
  -?,--help                        Shows help
  -a,--output-ascii                Add a 24-bit ASCII art image to the
                                   output
- -b,--replace-urls                Replace all image urls in a text file
-                                  with base64 images
+ -b,--inline-resources <arg>      Replace all external resources (images,
+                                  css, javascript, fonts, icons, media) in
+                                  an html or markdown document with base64
+                                  data URIs. The document type is
+                                  auto-detected, optionally pass "html" or
+                                  "markdown" to force it.
  -c,--output-rgb-array <arg>      Add a RGB C/C++ struct array to the
                                   output
  -d,--details                     Add image details to output
@@ -39,8 +43,6 @@ Project Page - https://openstatic.org/projects/imagetoarray/
                                   filter
  -r,--row-numbers                 Include row numbers on ASCII art
  -s,--scale <arg>                 Scale image (ex: 320x240 or 0.5)
- -t,--replace-tags                Replace all image tags in an html file
-                                  with base64 images
  -x,--output-rgb-2d-array <arg>   Add a RGB two dimensional C/C++ struct
                                   array to the output
 ```

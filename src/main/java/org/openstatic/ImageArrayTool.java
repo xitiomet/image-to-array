@@ -14,7 +14,6 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.ByteArrayInputStream;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -373,146 +372,6 @@ public class ImageArrayTool
         } catch(Exception e) {
             return new byte[]{};
         }
-    }
-
-    public static String getProtocolAndAuthority(String urlString) throws MalformedURLException
-    {
-        URL url = new URL(urlString);
-        String protocol = url.getProtocol();
-        String host = url.getHost();
-        int port = url.getPort();
-
-        // if the port is not explicitly specified in the input, it will be -1.
-        if (port == -1) {
-            return String.format("%s://%s", protocol, host);
-        } else {
-            return String.format("%s://%s:%d", protocol, host, port);
-        }
-    }
-
-    // Search an html document for any src="" and replace images with base64 encoded images.
-    public static String transformSrcIntoBase64(String text)
-    {
-        Pattern p = Pattern.compile("(<img\\b[^>]*\\bsrc\\s*=\\s*)([\"\'])((?:(?!\\2)[^>])*)\\2(\\s*[^>]*>)",
-            Pattern.CASE_INSENSITIVE & Pattern.MULTILINE);
-        Matcher m = p.matcher(text);
-        StringBuffer sb = new StringBuffer();
-        while(m.find())
-        {
-            String prefix = m.group(1) + m.group(2);
-            String found = m.group(3);
-            String postfix = m.group(2) + m.group(4);
-            String found_lower = found.toLowerCase();
-            try 
-            {
-                if (!found.startsWith("/") && !found_lower.startsWith("http:/") && !found_lower.startsWith("https:/"))
-                {
-                    // This image path is relative
-                    found = ImageArrayTool.sourceImagePath + found;
-                } else if (found_lower.startsWith("//")) {
-                    // This image path is a specific url but doesnt contain protocol
-                    String lcPath = ImageArrayTool.sourceImagePath.toLowerCase();
-                    if (lcPath.startsWith("https"))
-                    {
-                        found = "https:" + found;
-                    } else if (lcPath.startsWith("http")) {
-                        found = "http:" + found;
-                    }
-                } else if (found_lower.startsWith("/")) {
-                    // this image path is relative to the root of the domain
-                    String lcPath = ImageArrayTool.sourceImagePath.toLowerCase();
-                    if (lcPath.startsWith("http:/") || lcPath.startsWith("https:/"))
-                    {
-                        found = getProtocolAndAuthority(ImageArrayTool.sourceImagePath) + found;
-                    }
-                } else if (found_lower.startsWith("http:/") || found_lower.startsWith("https:/")) {
-                    // this url path is a full url do nothing to change it!
-                } else {
-                    found = (ImageArrayTool.sourceImagePath + "/" + found).replaceAll(Pattern.quote("//"),"/");
-                }
-                byte[] imageBytes = loadBytes(found);
-                if (imageBytes.length > 0)
-                {
-                    if (isSVG(imageBytes))
-                    {
-                        debugMessage("[src] Replacing URL (image/svg+xml): " + found);
-                        m.appendReplacement(sb, prefix + base64Data(imageBytes, "image/svg+xml") + postfix);
-                    } else {
-                        ByteArrayInputStream bais = new ByteArrayInputStream(imageBytes);
-                        BufferedImage bImage = ImageIO.read(bais);
-                        if (bImage.getType() != BufferedImage.TYPE_CUSTOM) // Makse sure its really an image.
-                        {
-                            if (found_lower.endsWith(".gif"))
-                            {
-                                debugMessage("[src] Replacing URL (image/gif): " + found);
-                                m.appendReplacement(sb, prefix + base64Data(imageBytes, "image/gif") + postfix);
-                            } else {
-                                debugMessage("[src] Replacing URL (image/png): " + found);
-                                m.appendReplacement(sb, prefix + base64image(bImage, "PNG") + postfix);
-                            }
-                        } else {
-                            debugMessage("[src] Skipping URL (Not an Image): " + found);
-                        }
-                    }
-                } else {
-                    debugMessage("[src] Skipping URL (No Data): " + found);
-                    m.appendReplacement(sb, prefix + found + postfix);
-                }
-
-            } catch (Exception e) {
-                debugMessage("[src] Skipping URL (Not an Image): " + found);
-            }
-        }
-        m.appendTail(sb);
-        return sb.toString();
-    }
-
-    public static String transformURLsIntoBase64(String text)
-    {
-        String urlValidationRegex = "\\b((?:https?|ftp|file)://[-a-zA-Z0-9+&@#/%?=~_|!:, .;]*[-a-zA-Z0-9+&@#/%=~_|])";
-        Pattern p = Pattern.compile(urlValidationRegex);
-        Matcher m = p.matcher(text);
-        StringBuffer sb = new StringBuffer();
-        while(m.find())
-        {
-            String found = m.group(0);
-            String found_lower = found.toLowerCase();
-            try 
-            {
-                byte[] imageBytes = loadBytes(found);
-                if (imageBytes.length > 0)
-                {
-                    ByteArrayInputStream bais = new ByteArrayInputStream(imageBytes);
-                    if (isSVG(imageBytes))
-                    {
-                        debugMessage("[url] Replacing URL (image/svg+xml): " + found);
-                        m.appendReplacement(sb, base64Data(imageBytes, "image/svg+xml"));
-                    } else {
-                        BufferedImage bImage = ImageIO.read(bais);
-                        if (bImage.getType() != BufferedImage.TYPE_CUSTOM) // Makse sure its really an image.
-                        {
-                            if (found_lower.endsWith(".gif"))
-                            {
-                                debugMessage("[url] Replacing URL (image/gif): " + found);
-                                m.appendReplacement(sb, base64Data(imageBytes, "image/gif"));
-                            } else {
-                                debugMessage("[url] Replacing URL (image/png): " + found);
-                                m.appendReplacement(sb, base64image(bImage, "PNG"));
-                            }
-                        } else {
-                            debugMessage("[url] Skipping URL (Not an Image): " + found);
-                        }
-                    }
-                } else {
-                    debugMessage("[url] Skipping URL (No Data): " + found);
-                    m.appendReplacement(sb, found);
-                }
-            } catch (Exception e) {
-                debugMessage("[url] Skipping URL (Not an Image): " + found);
-            }
-        }
-        m.appendTail(sb);
-        return sb.toString();
     }
 
     public static String filenameExtension(String filename)
@@ -885,10 +744,17 @@ public class ImageArrayTool
             asciiOption.setOptionalArg(true);
             options.addOption(asciiOption);
             //options.addOption(new Option("r", "row-numbers", false, "Include row numbers on ASCII art"));
-            options.addOption(new Option("b", "replace-urls", false, "Replace all image urls in a text file with base64 images"));
-            options.addOption(new Option("t", "replace-tags", false, "Replace all image tags in an html file with base64 images"));
+            Option inlineOption = new Option("b", "inline-resources", true, "Replace all external resources (images, css, javascript, fonts, icons, media) in an html or markdown document with base64 data URIs. The document type is auto-detected, optionally pass \"html\" or \"markdown\" to force it.");
+            inlineOption.setOptionalArg(true);
+            options.addOption(inlineOption);
 
             cmd = parser.parse(options, args);
+
+            ResourceInliner inliner = null;
+            if (cmd.hasOption("b"))
+            {
+                inliner = new ResourceInliner(ResourceInliner.parseDocumentType(cmd.getOptionValue("b")));
+            }
 
             if (cmd.hasOption("?") || cmd.getOptions().length == 0)
             {
@@ -904,7 +770,14 @@ public class ImageArrayTool
                 ImageArrayTool.sourceImageFileName = FilenameUtils.getName(sourceImageParameter);
                 ImageArrayTool.sourceImagePath = FilenameUtils.getPath(sourceImageParameter);
                 ImageArrayTool.sourceImageBaseName = FilenameUtils.getBaseName(sourceImageParameter);
-                ImageArrayTool.sourceData = loadBytes(sourceImageParameter);
+                ResourceInliner.Resource document = null;
+                if (inliner != null)
+                {
+                    document = ResourceInliner.fetch(sourceImageParameter);
+                    ImageArrayTool.sourceData = (document != null) ? document.data : new byte[]{};
+                } else {
+                    ImageArrayTool.sourceData = loadBytes(sourceImageParameter);
+                }
                 try
                 {
                     ByteArrayInputStream bais = new ByteArrayInputStream(ImageArrayTool.sourceData);
@@ -922,20 +795,21 @@ public class ImageArrayTool
                     debugMessage("Failed to read image: " + sourceImageParameter + " (" + e.getMessage() + ")");
                 }
 
-                if (ImageArrayTool.sourceImage == null && !cmd.hasOption("t") && !cmd.hasOption("b"))
+                if (ImageArrayTool.sourceImage == null && inliner == null)
                 {
                     debugMessage("Error: Could not load '" + sourceImageParameter + "' as an image.");
                     inputFailure = true;
                 }
                 
-                if (cmd.hasOption("t") || cmd.hasOption("b"))
+                if (inliner != null)
                 {
-                    String textBody = new String(ImageArrayTool.sourceData);
-                    if (cmd.hasOption("t"))
-                        textBody = transformSrcIntoBase64(textBody);
-                    if (cmd.hasOption("b"))
-                        textBody = transformURLsIntoBase64(textBody);
-                    output.append(textBody);
+                    if (document == null)
+                    {
+                        debugMessage("Error: Could not load '" + sourceImageParameter + "'.");
+                        inputFailure = true;
+                    } else {
+                        output.append(inliner.inlineDocument(document));
+                    }
                 }
 
                 if (ImageArrayTool.sourceImage != null)

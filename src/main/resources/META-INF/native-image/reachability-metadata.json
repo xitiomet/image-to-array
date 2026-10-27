@@ -73,6 +73,17 @@
       ]
     },
     {
+      "type": "com.sun.crypto.provider.HKDFKeyDerivation$HKDFSHA256",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "javax.crypto.KDFParameters"
+          ]
+        }
+      ]
+    },
+    {
       "type": "com.sun.crypto.provider.HKDFKeyDerivation$HKDFSHA384",
       "methods": [
         {
@@ -785,6 +796,17 @@
         },
         {
           "name": "maxBitSize"
+        }
+      ]
+    },
+    {
+      "type": "java.io.FileNotFoundException",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String"
+          ]
         }
       ]
     },
@@ -2352,6 +2374,9 @@
           ]
         }
       ]
+    },
+    {
+      "type": "sun.text.resources.cldr.FormatData"
     }
   ],
   "resources": [
