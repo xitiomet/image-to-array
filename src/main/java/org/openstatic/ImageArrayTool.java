@@ -27,6 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.Set;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
+import java.util.HashSet;
 import java.util.ArrayList;
 
 import java.util.regex.Matcher;
@@ -85,21 +86,18 @@ public class ImageArrayTool
     
     private static Set<GeoColor> getPalette(BufferedImage image)
     {
-        ArrayList<Integer> colors = new ArrayList<Integer>();
         int width = image.getWidth();
         int height = image.getHeight();
+        HashSet<Integer> distinctColors = new HashSet<Integer>();
         for (int row = 0; row < height; row++)
         {
             for (int col = 0; col < width; col++)
             {
-                Integer rgb = Integer.valueOf(image.getRGB(col, row) | 0xFF000000);
-                if (!colors.contains(rgb))
-                {
-                    colors.add(rgb);
-                }
+                distinctColors.add(Integer.valueOf(image.getRGB(col, row) | 0xFF000000));
             }
         }
-        colors.sort((a, b) -> { return a.intValue() - b.intValue(); });
+        ArrayList<Integer> colors = new ArrayList<Integer>(distinctColors);
+        colors.sort((a, b) -> { return Integer.compare(a.intValue(), b.intValue()); });
         LinkedHashSet<GeoColor> geoColors = new LinkedHashSet<GeoColor>();
         Iterator<Integer> colorsIterator = colors.iterator();
         while(colorsIterator.hasNext())
