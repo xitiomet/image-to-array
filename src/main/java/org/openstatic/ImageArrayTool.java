@@ -694,6 +694,7 @@ public class ImageArrayTool
 
     public static void main(String[] args) throws IOException 
     {
+        System.setProperty("java.awt.headless", "true");
         ImageArrayTool.ansiColors = new LinkedHashMap();
         
         // Regular Colors
