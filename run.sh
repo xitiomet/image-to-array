@@ -1,2 +1,2 @@
 #!/bin/bash
-java -jar target/image-to-array-1.4.jar $*
+mvn exec:java -Dexec.mainClass="org.openstatic.ImageArrayTool" -Dexec.args="$*"

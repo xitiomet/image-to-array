@@ -57,7 +57,7 @@ public class ImageArrayTool
       {
          for (int col = 0; col < width; col++)
          {
-            result[row][col] = new GeoColor(image.getRGB(col, row));
+            result[row][col] = new GeoColor(image.getRGB(col, row), true);
          }
       }
       return result;
@@ -225,8 +225,10 @@ public class ImageArrayTool
             h = (o_h * scale_to_float);
         }
         int iType = in_image.getType();
-        if (iType == BufferedImage.TYPE_INT_ARGB || iType == BufferedImage.TYPE_4BYTE_ABGR)
+        if (in_image.getColorModel().hasAlpha())
         {
+            if (iType != BufferedImage.TYPE_INT_ARGB && iType != BufferedImage.TYPE_4BYTE_ABGR)
+                iType = BufferedImage.TYPE_INT_ARGB;
             //debugMessage("Alpha Channel Detected on Scaling");
             AffineTransform at = new AffineTransform();
             at.scale(w/o_w, h/o_h);
@@ -269,6 +271,16 @@ public class ImageArrayTool
         return sb.toString() + "\u001B[0m";
     }
     
+    private static String ansiFg(GeoColor c)
+    {
+        return "\u001B[38;2;" + c.getRed() + ";" + c.getGreen() + ";" + c.getBlue() + "m";
+    }
+
+    private static String ansiBg(GeoColor c)
+    {
+        return "\u001B[48;2;" + c.getRed() + ";" + c.getGreen() + ";" + c.getBlue() + "m";
+    }
+
     // Convert 2 dimensional GeoColor array into ascii art
     public static String getAsciiArt(GeoColor[][] ary, boolean lineNumbers)
     {
@@ -280,18 +292,23 @@ public class ImageArrayTool
                 sb.append( "\u001B[1m\u001B[97m" + String.format("%03d", i) + ":\u001B[0m ");
             for (int col = 0; col < ary[row].length; col++)
             {
-                int nrow = row+1;
-                String fg_red = (nrow < ary.length) ? String.valueOf(ary[row+1][col].getRed()) : "0";
-                String fg_green = (nrow < ary.length) ? String.valueOf(ary[row+1][col].getGreen()) : "0";
-                String fg_blue = (nrow < ary.length) ? String.valueOf(ary[row+1][col].getBlue()) : "0";
-                
-                String bg_red = (row < ary.length) ? String.valueOf(ary[row][col].getRed()) : "0";
-                String bg_green = (row < ary.length) ? String.valueOf(ary[row][col].getGreen()) : "0";
-                String bg_blue = (row < ary.length) ? String.valueOf(ary[row][col].getBlue()) : "0";
+                // Each character cell holds two pixels: top (row) and bottom (row+1).
+                // Transparent pixels are left to the terminal's default background.
+                GeoColor top = ary[row][col];
+                GeoColor bottom = (row + 1 < ary.length) ? ary[row+1][col] : null;
+                boolean topClear = top.isTransparent();
+                boolean bottomClear = (bottom == null) || bottom.isTransparent();
 
-                sb.append(  "\u001B[48;2;" + bg_red + ";" + bg_green + ";" + bg_blue + "m" +
-                            "\u001B[38;2;" + fg_red + ";" + fg_green + ";" + fg_blue + "m\u2584\u001B[0m");
-                //System.out.print(getAnsiCodeFromRGB(ary[row][col]) + "\u2588\u2588");
+                if (topClear && bottomClear)
+                {
+                    sb.append(" ");
+                } else if (topClear) {
+                    sb.append(ansiFg(bottom) + "\u2584\u001B[0m");
+                } else if (bottomClear) {
+                    sb.append(ansiFg(top) + "\u2580\u001B[0m");
+                } else {
+                    sb.append(ansiBg(top) + ansiFg(bottom) + "\u2584\u001B[0m");
+                }
             }
             sb.append("\n");
             i++;
@@ -692,6 +709,29 @@ public class ImageArrayTool
         }
     }
 
+    public static String javaEscapedString(String input)
+    {
+        StringBuilder sb = new StringBuilder("\"");
+        for (char c : input.toCharArray())
+        {
+            switch (c)
+            {
+                case '\\': sb.append("\\\\"); break;
+                case '"':  sb.append("\\\""); break;
+                case '\n': sb.append("\\n"); break;
+                case '\r': sb.append("\\r"); break;
+                case '\t': sb.append("\\t"); break;
+                default:
+                    // Escape control chars (e.g. ESC in ANSI codes) and non-ASCII (block glyphs)
+                    if (c < 0x20 || c > 0x7E)
+                        sb.append(String.format("\\u%04X", (int) c));
+                    else
+                        sb.append(c);
+            }
+        }
+        return sb.append("\"").toString();
+    }
+
     public static void main(String[] args) throws IOException 
     {
         System.setProperty("java.awt.headless", "true");
@@ -835,7 +875,10 @@ public class ImageArrayTool
                         rowNumbers = asciiOptions.contains("row_numbers");
                         if (asciiOptions.contains("no_scale") || cmd.hasOption("s"))
                         {
-                            output.append(getAsciiArt(sourceImageArray, rowNumbers));
+                            if (asciiOptions.contains("java_string"))
+                                output.append(javaEscapedString(getAsciiArt(sourceImageArray, rowNumbers)));
+                            else
+                                output.append(getAsciiArt(sourceImageArray, rowNumbers));
                         } else {
                             int term_h = 48;
                             int term_w = 72;
@@ -865,7 +908,12 @@ public class ImageArrayTool
                                 }
                             }
                             GeoColor[][] sourceImageArrayScaled = convertTo2DArray(scaledSourceImage);
-                            output.append(getAsciiArt(sourceImageArrayScaled, rowNumbers));
+                            if (asciiOptions.contains("java_string"))
+                            {
+                                output.append(javaEscapedString(getAsciiArt(sourceImageArrayScaled, rowNumbers)));
+                            } else {
+                                output.append(getAsciiArt(sourceImageArrayScaled, rowNumbers));
+                            }
                         }
                     }
                     

@@ -15,6 +15,17 @@ public class GeoColor extends Color
     {
         super(rgb);
     }
+
+    public GeoColor(int argb, boolean hasAlpha)
+    {
+        super(argb, hasAlpha);
+    }
+
+    /** true when the pixel is mostly see-through (alpha below 50%) **/
+    public boolean isTransparent()
+    {
+        return this.getAlpha() < 128;
+    }
     
     /** return the distance between two colors on the color spectrum **/
     public double distanceFrom(Color b)
