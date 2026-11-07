@@ -170,6 +170,8 @@ FunctionEnd
 ;Interface Settings
 
   !define MUI_ABORTWARNING
+  !define MUI_ICON "${PROJECT_BASEDIR}\src\main\resources\ita.ico"
+  !define MUI_UNICON "${PROJECT_BASEDIR}\src\main\resources\ita.ico"
 
 ;--------------------------------
 ;Pages
