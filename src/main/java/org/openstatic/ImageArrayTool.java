@@ -15,8 +15,8 @@ import java.io.FileWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.ByteArrayInputStream;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 
 import javax.imageio.ImageIO;
 import java.awt.Color;
@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.HashSet;
 import java.util.ArrayList;
+import java.util.Locale;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -518,10 +519,15 @@ public class ImageArrayTool
      */
     public static String generateJavaSource(File file, BufferedImage image) throws IOException
     {
+        return generateJavaSource(file, image, true);
+    }
+
+    private static String generateJavaSource(File file, BufferedImage image, boolean includePackage) throws IOException
+    {
         String fileName = file.getName();
         String baseName = fileName.endsWith(".java") ? fileName.substring(0, fileName.length() - 5) : fileName;
         String className = toJavaIdentifier(baseName);
-        String pkg = inferPackage(file);
+        String pkg = includePackage ? inferPackage(file) : "";
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ImageIO.write(image, "png", baos);
@@ -631,81 +637,65 @@ public class ImageArrayTool
         return "";
     }
 
-    public static void outputImage(File file, String type)
+    public static void outputImage(File file, String type) throws Exception
     {
-        try
+        try (OutputStream out = Files.newOutputStream(file.toPath()))
         {
-            if (type.equals("ico"))
+            writeImage(out, file, type);
+        }
+        debugMessage("Wrote (" + type + "): " + file.toString());
+    }
+
+    private static void writeImage(OutputStream out, File name, String type) throws Exception
+    {
+        if (type.equals("ico"))
+        {
+            ArrayList<BufferedImage> icons = new ArrayList<BufferedImage>();
+            for (String size : new String[] { "16x16", "32x32", "48x48", "64x64", "128x128" })
+                icons.add(resizeImage(size, ImageArrayTool.sourceImage));
+            int[] bpps = new int[icons.size()];
+            Arrays.fill(bpps, 32);
+            ICOEncoder.write(icons, bpps, out);
+        } else if (type.equals("icns")) {
+            try (IcnsBuilder builder = IcnsBuilder.getInstance())
             {
-                ArrayList<BufferedImage> icons = new ArrayList<BufferedImage>();
-                icons.add(resizeImage("16x16",ImageArrayTool.sourceImage));
-                icons.add(resizeImage("32x32",ImageArrayTool.sourceImage));
-                icons.add(resizeImage("48x48",ImageArrayTool.sourceImage));
-                icons.add(resizeImage("64x64",ImageArrayTool.sourceImage));
-                icons.add(resizeImage("128x128",ImageArrayTool.sourceImage));
-                int[] bpps = new int[icons.size()];
-                for(int i = 0; i<icons.size(); i++) bpps[i] = 32;
-                ICOEncoder.write(icons, bpps, file);
-                debugMessage("Wrote (" + type + "): " + file.toString());
-            } else if (type.equals("icns")) {
-                try (IcnsBuilder builder = IcnsBuilder.getInstance())
+                builder.add(IcnsType.ICNS_16x16_JPEG_PNG_IMAGE, readablePNG("16x16", ImageArrayTool.sourceImage));
+                builder.add(IcnsType.ICNS_32x32_JPEG_PNG_IMAGE, readablePNG("32x32", ImageArrayTool.sourceImage));
+                builder.add(IcnsType.ICNS_64x64_JPEG_PNG_IMAGE, readablePNG("64x64", ImageArrayTool.sourceImage));
+                builder.add(IcnsType.ICNS_128x128_JPEG_PNG_IMAGE, readablePNG("128x128", ImageArrayTool.sourceImage));
+                builder.add(IcnsType.ICNS_256x256_JPEG_PNG_IMAGE, readablePNG("256x256", ImageArrayTool.sourceImage));
+                builder.add(IcnsType.ICNS_512x512_JPEG_PNG_IMAGE, readablePNG("512x512", ImageArrayTool.sourceImage));
+                try (IcnsIcons icons = builder.build())
                 {
-                    builder.add(IcnsType.ICNS_16x16_JPEG_PNG_IMAGE, readablePNG("16x16", ImageArrayTool.sourceImage));
-                    builder.add(IcnsType.ICNS_32x32_JPEG_PNG_IMAGE, readablePNG("32x32", ImageArrayTool.sourceImage));
-                    builder.add(IcnsType.ICNS_64x64_JPEG_PNG_IMAGE, readablePNG("64x64", ImageArrayTool.sourceImage));
-                    builder.add(IcnsType.ICNS_128x128_JPEG_PNG_IMAGE, readablePNG("128x128", ImageArrayTool.sourceImage));
-                    builder.add(IcnsType.ICNS_256x256_JPEG_PNG_IMAGE, readablePNG("256x256", ImageArrayTool.sourceImage));
-                    builder.add(IcnsType.ICNS_512x512_JPEG_PNG_IMAGE, readablePNG("512x512", ImageArrayTool.sourceImage));
-                    IcnsIcons builtIcons = builder.build();        
-                    Path output = file.toPath();
-                    OutputStream os = Files.newOutputStream(output);
-                    builtIcons.writeTo(os);
-                    debugMessage("Wrote (" + type + "): " + file.toString());
-                } catch (Exception e) {
-                    e.printStackTrace(System.err);
+                    icons.writeTo(out);
                 }
-            } else if (type.equals("html")) {
-                try
-                {
-                    String htmlData = "<img id=\"ita_" + ImageArrayTool.sourceImageBaseName + "\" src=\"" + base64image(ImageArrayTool.sourceImage, "PNG") + "\" />" + System.lineSeparator();
-                    BufferedWriter bwr = new BufferedWriter(new FileWriter(file));
-                    bwr.write(htmlData);
-                    bwr.flush();
-                    bwr.close();
-                    debugMessage("Wrote (" + type + "): " + file.toString());
-                } catch (Exception e) {
-                    e.printStackTrace(System.err);
-                }
-            } else if (type.equals("md")) {
-                try
-                {
-                    String htmlData = "![ita_" + ImageArrayTool.sourceImageBaseName + "](" + base64image(ImageArrayTool.sourceImage, "PNG") + ")" + System.lineSeparator();
-                    BufferedWriter bwr = new BufferedWriter(new FileWriter(file));
-                    bwr.write(htmlData);
-                    bwr.flush();
-                    bwr.close();
-                    debugMessage("Wrote (" + type + "): " + file.toString());
-                } catch (Exception e) {
-                    e.printStackTrace(System.err);
-                }
-            } else if (type.equals("java")) {
-                try
-                {
-                    String javaSource = generateJavaSource(file, ImageArrayTool.sourceImage);
-                    BufferedWriter bwr = new BufferedWriter(new FileWriter(file));
-                    bwr.write(javaSource);
-                    bwr.flush();
-                    bwr.close();
-                    debugMessage("Wrote (" + type + "): " + file.toString());
-                } catch (Exception e) {
-                    e.printStackTrace(System.err);
-                }
-            } else {
-                ImageIO.write(ImageArrayTool.sourceImage, type, file);
-                debugMessage("Wrote (" + type + "): " + file.toString());
             }
-        } catch (IOException e) {
-            e.printStackTrace(System.err);
+        } else if (type.equals("html") || type.equals("md")) {
+            String data = base64image(ImageArrayTool.sourceImage, "PNG");
+            String text = type.equals("html")
+                ? "<img id=\"ita_" + ImageArrayTool.sourceImageBaseName + "\" src=\"" + data + "\" />"
+                : "![ita_" + ImageArrayTool.sourceImageBaseName + "](" + data + ")";
+            out.write((text + System.lineSeparator()).getBytes(StandardCharsets.UTF_8));
+        } else if (type.equals("java")) {
+            boolean includePackage = name != null;
+            File javaName = includePackage ? name : new File(ImageArrayTool.sourceImageBaseName + ".java");
+            out.write(generateJavaSource(javaName, ImageArrayTool.sourceImage, includePackage).getBytes(StandardCharsets.UTF_8));
+        } else {
+            BufferedImage image = ImageArrayTool.sourceImage;
+            if ((type.equals("jpg") || type.equals("jpeg") || type.equals("bmp"))
+                    && image.getColorModel().hasAlpha())
+            {
+                BufferedImage rgb = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
+                Graphics2D graphics = rgb.createGraphics();
+                try {
+                    graphics.drawImage(image, 0, 0, null);
+                } finally {
+                    graphics.dispose();
+                }
+                image = rgb;
+            }
+            if (!ImageIO.write(image, type, out))
+                throw new IOException("No image writer available for format: " + type);
         }
     }
 
@@ -776,6 +766,7 @@ public class ImageArrayTool
 
             Option outputOption = Option.builder("o").desc("Output a file instead of STDOUT (txt,html,md,java,png,bmp,gif,jpg,webp,ico,icns)").hasArgs().longOpt("output").valueSeparator(' ').build();
             options.addOption(outputOption);
+            options.addOption(new Option("f", "output-format", true, "Override the output format (txt,html,md,java,png,bmp,gif,jpg,webp,ico,icns)"));
             options.addOption(new Option("c", "output-rgb-array", true, "Add a RGB C/C++ struct array to the output"));
             options.addOption(new Option("x", "output-rgb-2d-array", true, "Add a RGB two dimensional C/C++ struct array to the output"));
             options.addOption(new Option("e", "output-base64", true, "Add a base64 string to the output (argument is format JPEG,GIF,PNG,WEBP)"));
@@ -801,6 +792,24 @@ public class ImageArrayTool
             }
 
             String[] sourceImageParameters = cmd.getOptionValues('i');
+            if (sourceImageParameters == null || sourceImageParameters.length == 0)
+                throw new IllegalArgumentException("An input is required; use -i to specify one");
+            String outputFormat = cmd.getOptionValue("f");
+            if (outputFormat != null)
+            {
+                outputFormat = outputFormat.toLowerCase(Locale.ROOT);
+                if (!Arrays.asList("txt", "html", "md", "java", "png", "bmp", "gif", "jpg", "webp", "ico", "icns").contains(outputFormat))
+                    throw new IllegalArgumentException("Unsupported output format: " + outputFormat);
+                boolean textOptions = cmd.hasOption("a") || cmd.hasOption("b") || cmd.hasOption("c")
+                    || cmd.hasOption("d") || cmd.hasOption("e") || cmd.hasOption("x");
+                if (!outputFormat.equals("txt") && textOptions)
+                    throw new IllegalArgumentException("Text output options cannot be combined with -f " + outputFormat);
+                if (outputFormat.equals("txt") && !textOptions)
+                    throw new IllegalArgumentException("-f txt requires a text output option such as -c, -a, or -d");
+                if (!outputFormat.equals("txt") && !cmd.hasOption("o")
+                        && sourceImageParameters.length != 1)
+                    throw new IllegalArgumentException("Formatted output to stdout requires exactly one input");
+            }
             debugMessage("Input Files: " + Arrays.asList(sourceImageParameters).toString());
             boolean inputFailure = false;
             for(int i = 0; i < sourceImageParameters.length; i++)
@@ -952,7 +961,7 @@ public class ImageArrayTool
                         output.append(base64image(ImageArrayTool.sourceImage, cmd.getOptionValue("e","PNG")));
                     }
 
-                    if (cmd.hasOption("o") && output.length() == 0)
+                    if (cmd.hasOption("o") && output.length() == 0 && !"txt".equals(outputFormat))
                     {
                         String[] outputFilenames = cmd.getOptionValues('o');
                         if (outputFilenames.length == 1)
@@ -962,7 +971,7 @@ public class ImageArrayTool
                             {
                                 filename = ImageArrayTool.sourceImageBaseName + outputFilenames[0];
                             }
-                            String ext = filenameExtension(filename).toLowerCase();
+                            String ext = outputFormat != null ? outputFormat : filenameExtension(filename).toLowerCase(Locale.ROOT);
                             outputImage(new File(filename), ext);
                         } else {
                             for (int n = 0; n < outputFilenames.length; n++)
@@ -971,14 +980,19 @@ public class ImageArrayTool
                                 if (filename.startsWith("."))
                                 {
                                     filename = ImageArrayTool.sourceImageBaseName + filename;
-                                    String ext = filenameExtension(filename).toLowerCase();
+                                    String ext = outputFormat != null ? outputFormat : filenameExtension(filename).toLowerCase(Locale.ROOT);
                                     outputImage(new File(filename), ext);
                                 } else if (n == i) {
-                                    String ext = filenameExtension(filename).toLowerCase();
+                                    String ext = outputFormat != null ? outputFormat : filenameExtension(filename).toLowerCase(Locale.ROOT);
                                     outputImage(new File(filename), ext);
                                 }
                             }
                         }
+                    } else if (!cmd.hasOption("o") && outputFormat != null && !outputFormat.equals("txt")) {
+                        writeImage(System.out, null, outputFormat);
+                        System.out.flush();
+                        if (System.out.checkError())
+                            throw new IOException("Failed to write to stdout");
                     }
                 }
             }
@@ -1007,7 +1021,8 @@ public class ImageArrayTool
                 System.exit(1);
             }
         } catch (ParseException pe) {
-            showHelp(options);
+            System.err.println("ita: error: " + pe.getMessage());
+            System.exit(1);
         } catch (Exception e) {
             System.err.println("ita: error: " + e.getMessage());
             e.printStackTrace(System.err);

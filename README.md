@@ -34,11 +34,14 @@ Project Page - https://openstatic.org/projects/imagetoarray/
  -d,--details                     Add image details to output
  -e,--output-base64 <arg>         Add a base64 string to the output
                                   (argument is format JPEG,GIF,PNG,WEBP)
+ -f,--output-format <arg>         Override the output format for files or
+                                  stdout (txt,html,md,java,png,bmp,gif,jpg,
+                                  webp,ico,icns)
  -i,--input <arg>                 Input files or URLs
                                   (png,jpg,md,html,bmp,gif,txt,webp)
  -o,--output <arg>                Output a file instead of STDOUT
-                                  (txt,html,md,png,bmp,gif,jpg,webp,ico,ic
-                                  ns)
+                                  (txt,html,md,java,png,bmp,gif,jpg,webp,
+                                  ico,icns)
  -p,--input-palette <arg>         Input image file for color palette
                                   filter
  -r,--row-numbers                 Include row numbers on ASCII art
@@ -48,6 +51,27 @@ Project Page - https://openstatic.org/projects/imagetoarray/
 ```
 
 ### Example Usage ###
+
+Use `-f` (or `--output-format`) to choose a format independently of the
+output filename, or to write that format to standard output:
+
+```bash
+ita -i hearts.png -f png -o image.dat
+ita -i hearts.png --output-format webp > image.webp
+ita -i hearts.png -f html > image.html
+ita -i hearts.png -c CRGB -f txt > pixels.txt
+```
+
+Without `-f`, file output is selected from the filename extension, and
+standard output contains the text requested by options such as `-c`, `-a`,
+`-d`, or `-b`. The `txt` format requires at least one such text-output option.
+Other explicit formats cannot be combined with text-output options, and
+require exactly one input when writing to stdout. Java output to stdout uses
+the input's base name for the generated class.
+
+To run the output-format integration tests after building the JAR, use
+`python3 tests/test_output_format.py`.
+
 hearts.png (16x5 Image i want displayed on glasses)
 
 ![](https://raw.githubusercontent.com/xitiomet/image-to-array/master/src/main/resources/hearts2.png)
@@ -99,4 +123,3 @@ Input Files: [arrows.png]
 Wrote (ico): arrows.ico
 Wrote (icns): arrows.icns
 ```
-
